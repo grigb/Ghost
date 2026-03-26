@@ -1,5 +1,5 @@
 import baseDebug from '@tryghost/debug';
-import express from 'express';
+import express, {type Express} from 'express';
 import http from 'http';
 import {
     type RecordedStripeCheckoutSession,
@@ -21,7 +21,7 @@ const debug = baseDebug('e2e:fake-stripe');
 
 export class FakeStripeServer {
     private server: http.Server | null = null;
-    private readonly app = express();
+    private readonly app: Express = express();
     private _port: number;
     private readonly products: Map<string, StripeProduct> = new Map();
     private readonly prices: Map<string, StripePrice> = new Map();
