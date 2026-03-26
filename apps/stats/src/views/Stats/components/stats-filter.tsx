@@ -1,7 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import countries from 'i18n-iso-countries';
 import enLocale from 'i18n-iso-countries/langs/en.json';
-import {Button, Filter, FilterFieldConfig, Filters, LucideIcon} from '@tryghost/shade';
+import {Button, Filter, FilterFieldConfig, FilterOption, Filters, LucideIcon, ValueSource, ValueSourceParams, ValueSourceResult} from '@tryghost/shade';
 import {STATS_LABEL_MAPPINGS, UNKNOWN_LOCATION_VALUES} from '@src/utils/constants';
 import {formatQueryDate, getRangeDates} from '@tryghost/shade';
 import {getAudienceFromFilterValues, getAudienceQueryParam} from '@src/utils/audience';
@@ -96,16 +96,93 @@ const FILTER_FIELD_DEFINITIONS: Record<string, FilterFieldDefinition> = {
     }
 };
 
+const filterOptionsByQuery = <T = string,>(options: FilterOption<T>[], query: string): FilterOption<T>[] => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    if (!normalizedQuery) {
+        return options;
+    }
+
+    return options.filter((option) => {
+        return option.label.toLowerCase().includes(normalizedQuery) ||
+            option.detail?.toLowerCase().includes(normalizedQuery);
+    });
+};
+
+const mergeFilterOptions = <T = string,>(...lists: Array<Array<FilterOption<T>> | undefined>): FilterOption<T>[] => {
+    const merged = new Map<T, FilterOption<T>>();
+
+    for (const list of lists) {
+        if (!list) {
+            continue;
+        }
+
+        for (const option of list) {
+            if (!merged.has(option.value)) {
+                merged.set(option.value, option);
+            }
+        }
+    }
+
+    return [...merged.values()];
+};
+
+const asFilterValueSource = (valueSource: ValueSource<string>): ValueSource<unknown> => {
+    return valueSource as unknown as ValueSource<unknown>;
+};
+
+const buildTinybirdOptions = (
+    data: unknown,
+    definition?: FilterFieldDefinition
+): FilterOption<string>[] => {
+    if (!definition) {
+        return [];
+    }
+
+    const items = (data as Array<Record<string, unknown>> | undefined) || [];
+
+    return items
+        .filter(item => (definition.filterItem ? definition.filterItem(item) : true))
+        .map((item) => {
+            const rawValue = String(item[definition.valueKey] ?? '');
+            const visits = Number(item.visits) || 0;
+            const {value, label} = definition.transformValue
+                ? definition.transformValue(rawValue)
+                : {value: rawValue, label: rawValue};
+
+            return {
+                label,
+                value,
+                icon: <VisitCountBadge visits={visits} />
+            };
+        });
+};
+
+const applySelectedPostFilter = (params: Record<string, string>, selectedValue?: string) => {
+    if (!selectedValue) {
+        return;
+    }
+
+    if (selectedValue.startsWith('/')) {
+        params.pathname = selectedValue;
+        delete params.post_uuid;
+        return;
+    }
+
+    params.post_uuid = selectedValue;
+    delete params.pathname;
+};
+
 // Build filter params for Tinybird API, excluding the specified field to avoid circular filtering
 const buildFilterParams = (
     currentFilters: Filter[],
-    excludeField: string,
+    excludeField: string | undefined,
     baseParams: Record<string, string>
 ): Record<string, string> => {
     const params = {...baseParams};
 
     currentFilters.forEach((filter) => {
-        if (filter.field === excludeField || filter.values.length === 0) {
+        if ((excludeField && filter.field === excludeField) || filter.values.length === 0) {
             return;
         }
 
@@ -129,155 +206,168 @@ const buildFilterParams = (
     return params;
 };
 
-interface UseTinybirdFilterOptionsConfig {
-    enabled?: boolean;
-}
-
-// Generic hook to fetch filter options from Tinybird
-// Handles the common pattern: fetch data, transform to options, ensure selected value is included
-const useTinybirdFilterOptions = (
+const useTinybirdFilterValueSource = (
     fieldKey: string,
-    currentFilters: Filter[] = [],
-    config: UseTinybirdFilterOptionsConfig = {}
-) => {
-    const {enabled = true} = config;
-    const {statsConfig, range} = useGlobalData();
-    const {startDate, endDate, timezone} = getRangeDates(range);
+    currentFilters: Filter[] = []
+): ValueSource<string> => {
+    const useTinybirdFilterValueSourceOptions = ({query, selectedValues}: ValueSourceParams<string>): ValueSourceResult<string> => {
+        const {statsConfig, range} = useGlobalData();
+        const {startDate, endDate, timezone} = getRangeDates(range);
+        const definition = FILTER_FIELD_DEFINITIONS[fieldKey];
 
-    const definition = FILTER_FIELD_DEFINITIONS[fieldKey];
+        const audience = useMemo(() => {
+            const audienceFilter = currentFilters.find(f => f.field === 'audience');
+            return getAudienceFromFilterValues(audienceFilter?.values as string[] | undefined);
+        }, [currentFilters]);
 
-    // Derive audience from filters (URL is the source of truth)
-    const audience = useMemo(() => {
-        const audienceFilter = currentFilters.find(f => f.field === 'audience');
-        return getAudienceFromFilterValues(audienceFilter?.values as string[] | undefined);
-    }, [currentFilters]);
-
-    // Build params including filters from other fields
-    const params = useMemo(() => {
-        const baseParams: Record<string, string> = {
+        const baseParams = useMemo(() => ({
             site_uuid: statsConfig?.id || '',
             date_from: formatQueryDate(startDate),
             date_to: formatQueryDate(endDate),
             timezone: timezone,
             member_status: getAudienceQueryParam(audience),
             limit: '50'
+        }), [statsConfig?.id, startDate, endDate, timezone, audience]);
+
+        const visibleQuery = useTinybirdQuery({
+            endpoint: definition?.endpoint || '',
+            statsConfig,
+            params: buildFilterParams(currentFilters, fieldKey, baseParams),
+            enabled: !!definition
+        });
+
+        const hydratedParams = useMemo(() => {
+            const params = buildFilterParams(currentFilters, undefined, baseParams);
+
+            if (selectedValues[0]) {
+                params[fieldKey] = selectedValues[0];
+            }
+
+            return params;
+        }, [baseParams, currentFilters, fieldKey, selectedValues]);
+
+        const hydratedQuery = useTinybirdQuery({
+            endpoint: definition?.endpoint || '',
+            statsConfig,
+            params: hydratedParams,
+            enabled: selectedValues.length > 0 && !!definition
+        });
+
+        const visibleOptions = useMemo(() => {
+            return buildTinybirdOptions(visibleQuery.data, definition);
+        }, [definition, visibleQuery.data]);
+
+        const hydratedOptions = useMemo(() => {
+            return buildTinybirdOptions(hydratedQuery.data, definition);
+        }, [definition, hydratedQuery.data]);
+
+        return {
+            options: mergeFilterOptions(hydratedOptions, filterOptionsByQuery(visibleOptions, query)),
+            isLoading: visibleQuery.loading || hydratedQuery.loading
         };
+    };
 
-        return buildFilterParams(currentFilters, fieldKey, baseParams);
-    }, [statsConfig?.id, startDate, endDate, timezone, audience, currentFilters, fieldKey]);
-
-    const {data, loading} = useTinybirdQuery({
-        endpoint: definition?.endpoint || '',
-        statsConfig,
-        params,
-        enabled: enabled && !!definition
-    });
-
-    const options = useMemo(() => {
-        if (!definition) {
-            return [];
-        }
-
-        const items = (data as unknown as Array<Record<string, unknown>>) || [];
-
-        // Filter and transform items
-        return items
-            .filter(item => (definition.filterItem ? definition.filterItem(item) : true))
-            .map((item) => {
-                const rawValue = String(item[definition.valueKey] ?? '');
-                const visits = Number(item.visits) || 0;
-                const {value, label} = definition.transformValue
-                    ? definition.transformValue(rawValue)
-                    : {value: rawValue, label: rawValue};
-
-                return {
-                    label,
-                    value,
-                    icon: <VisitCountBadge visits={visits} />
-                };
-            });
-    }, [data, definition]);
-
-    return {options, loading};
+    return useMemo(() => ({
+        id: `stats.${fieldKey}`,
+        useOptions: useTinybirdFilterValueSourceOptions
+    }), [fieldKey, useTinybirdFilterValueSourceOptions]);
 };
 
-interface UsePostOptionsConfig {
-    enabled?: boolean;
-}
+const usePostValueSource = (currentFilters: Filter[] = []): ValueSource<string> => {
+    const usePostValueSourceOptions = ({query, selectedValues}: ValueSourceParams<string>): ValueSourceResult<string> => {
+        const {range} = useGlobalData();
+        const {startDate, endDate, timezone} = getRangeDates(range);
 
-// Hook to fetch posts/pages options from Ghost API (which queries Tinybird and enriches with titles)
-// This uses a different API pattern so it can't use the generic hook
-const usePostOptions = (currentFilters: Filter[] = [], config: UsePostOptionsConfig = {}) => {
-    const {enabled = true} = config;
-    const {range} = useGlobalData();
-    const {startDate, endDate, timezone} = getRangeDates(range);
+        const audience = useMemo(() => {
+            const audienceFilter = currentFilters.find(f => f.field === 'audience');
+            return getAudienceFromFilterValues(audienceFilter?.values as string[] | undefined);
+        }, [currentFilters]);
 
-    // Derive audience from filters (URL is the source of truth)
-    const audience = useMemo(() => {
-        const audienceFilter = currentFilters.find(f => f.field === 'audience');
-        return getAudienceFromFilterValues(audienceFilter?.values as string[] | undefined);
-    }, [currentFilters]);
+        const baseParams = useMemo(() => {
+            const params: Record<string, string> = {
+                date_from: formatQueryDate(startDate),
+                date_to: formatQueryDate(endDate),
+                member_status: getAudienceQueryParam(audience)
+            };
 
-    // Build query params including filters from other fields (excluding post to avoid circular filtering)
-    const queryParams = useMemo(() => {
-        const baseParams: Record<string, string> = {
-            date_from: formatQueryDate(startDate),
-            date_to: formatQueryDate(endDate),
-            member_status: getAudienceQueryParam(audience)
+            if (timezone) {
+                params.timezone = timezone;
+            }
+
+            return params;
+        }, [startDate, endDate, timezone, audience]);
+
+        const visibleQuery = useTopContent({
+            searchParams: buildFilterParams(currentFilters, 'post', baseParams),
+            enabled: true
+        });
+
+        const hydratedParams = useMemo(() => {
+            const params = buildFilterParams(currentFilters, undefined, baseParams);
+            applySelectedPostFilter(params, selectedValues[0]);
+            return params;
+        }, [baseParams, currentFilters, selectedValues]);
+
+        const hydratedQuery = useTopContent({
+            searchParams: hydratedParams,
+            enabled: selectedValues.length > 0
+        });
+
+        const buildPostOptions = useCallback((stats: Array<{
+            post_uuid?: string | null;
+            pathname: string;
+            title?: string | null;
+            visits?: number | null;
+        }> | undefined) => {
+            const seen = new Set<string>();
+
+            return (stats || [])
+                .filter((item) => {
+                    const hasValidPostUuid = item.post_uuid && item.post_uuid !== '' && item.post_uuid !== 'undefined';
+                    const uniqueKey = hasValidPostUuid ? `uuid:${item.post_uuid}` : `path:${item.pathname}`;
+
+                    if (seen.has(uniqueKey)) {
+                        return false;
+                    }
+
+                    seen.add(uniqueKey);
+                    return true;
+                })
+                .map((item) => {
+                    const visits = item.visits || 0;
+                    const hasValidPostUuid = item.post_uuid && item.post_uuid !== '' && item.post_uuid !== 'undefined';
+                    const filterValue = hasValidPostUuid ? item.post_uuid! : item.pathname;
+
+                    return {
+                        label: item.title || item.pathname || '(Untitled)',
+                        value: filterValue,
+                        icon: <VisitCountBadge visits={visits} />
+                    };
+                });
+        }, []);
+
+        const visibleOptions = useMemo(() => {
+            return buildPostOptions(visibleQuery.data?.stats);
+        }, [buildPostOptions, visibleQuery.data?.stats]);
+
+        const hydratedOptions = useMemo(() => {
+            return buildPostOptions(hydratedQuery.data?.stats);
+        }, [buildPostOptions, hydratedQuery.data?.stats]);
+
+        return {
+            options: mergeFilterOptions(hydratedOptions, filterOptionsByQuery(visibleOptions, query)),
+            isLoading: visibleQuery.isLoading || hydratedQuery.isLoading
         };
+    };
 
-        if (timezone) {
-            baseParams.timezone = timezone;
-        }
-
-        return buildFilterParams(currentFilters, 'post', baseParams);
-    }, [startDate, endDate, timezone, audience, currentFilters]);
-
-    // Fetch top content data from Ghost API (which queries Tinybird and enriches with titles)
-    const {data: topContentData, isLoading} = useTopContent({
-        searchParams: queryParams,
-        enabled
-    });
-
-    const options = useMemo(() => {
-        const stats = topContentData?.stats;
-
-        // Deduplicate items - prefer post_uuid for posts/pages, use pathname for other content
-        const seen = new Set<string>();
-        return (stats || [])
-            .filter((item) => {
-                // Create a unique key - prefer post_uuid if available, otherwise use pathname
-                const hasValidPostUuid = item.post_uuid && item.post_uuid !== '' && item.post_uuid !== 'undefined';
-                const uniqueKey = hasValidPostUuid ? `uuid:${item.post_uuid}` : `path:${item.pathname}`;
-
-                if (seen.has(uniqueKey)) {
-                    return false;
-                }
-                seen.add(uniqueKey);
-                return true;
-            })
-            .map((item) => {
-                const visits = item.visits || 0;
-                // Use post_uuid as the filter value if available, otherwise use pathname
-                const hasValidPostUuid = item.post_uuid && item.post_uuid !== '' && item.post_uuid !== 'undefined';
-                const filterValue = hasValidPostUuid ? item.post_uuid! : item.pathname;
-
-                return {
-                    label: item.title || item.pathname || '(Untitled)',
-                    value: filterValue,
-                    icon: <VisitCountBadge visits={visits} />
-                };
-            });
-    }, [topContentData]);
-
-    return {options, loading: isLoading};
+    return useMemo(() => ({
+        id: 'stats.post',
+        useOptions: usePostValueSourceOptions
+    }), [usePostValueSourceOptions]);
 };
 
 function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
     const {appSettings} = useAppContext();
-
-    // Track which filter field is currently being selected (lazy loading)
-    const [activeFilterField, setActiveFilterField] = useState<string | null>(null);
 
     // Track screen width for responsive popover alignment
     const [isMobile, setIsMobile] = useState(false);
@@ -307,29 +397,15 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
         ];
         return appSettings?.paidMembersEnabled ? options : options.filter(opt => opt.value !== 'paid');
     }, [appSettings?.paidMembersEnabled]);
-
-    // Helper: determine if a filter field should fetch options
-    // Enable fetching when the field is active OR has an applied filter value (for label display)
-    const shouldFetchOptions = useCallback((fieldKey: string) => {
-        const isActive = activeFilterField === fieldKey;
-        const hasAppliedFilter = filters.some(f => f.field === fieldKey);
-        return isActive || hasAppliedFilter;
-    }, [activeFilterField, filters]);
-
-    // Fetch options for all Tinybird-backed fields using the generic hook
-    // Options are contextual - filtered based on currently applied filters
-    // Lazy loading: only fetch when field is active or has applied filter
-    const {options: utmSourceOptions, loading: utmSourceLoading} = useTinybirdFilterOptions('utm_source', filters, {enabled: shouldFetchOptions('utm_source')});
-    const {options: utmMediumOptions, loading: utmMediumLoading} = useTinybirdFilterOptions('utm_medium', filters, {enabled: shouldFetchOptions('utm_medium')});
-    const {options: utmCampaignOptions, loading: utmCampaignLoading} = useTinybirdFilterOptions('utm_campaign', filters, {enabled: shouldFetchOptions('utm_campaign')});
-    const {options: utmContentOptions, loading: utmContentLoading} = useTinybirdFilterOptions('utm_content', filters, {enabled: shouldFetchOptions('utm_content')});
-    const {options: utmTermOptions, loading: utmTermLoading} = useTinybirdFilterOptions('utm_term', filters, {enabled: shouldFetchOptions('utm_term')});
-    const {options: sourceOptions, loading: sourceLoading} = useTinybirdFilterOptions('source', filters, {enabled: shouldFetchOptions('source')});
-    const {options: deviceOptions, loading: deviceLoading} = useTinybirdFilterOptions('device', filters, {enabled: shouldFetchOptions('device')});
-    const {options: locationOptions, loading: locationLoading} = useTinybirdFilterOptions('location', filters, {enabled: shouldFetchOptions('location')});
-
-    // Fetch options for posts - data is contextual based on current filters
-    const {options: postOptions, loading: postLoading} = usePostOptions(filters, {enabled: shouldFetchOptions('post')});
+    const utmSourceValueSource = useTinybirdFilterValueSource('utm_source', filters);
+    const utmMediumValueSource = useTinybirdFilterValueSource('utm_medium', filters);
+    const utmCampaignValueSource = useTinybirdFilterValueSource('utm_campaign', filters);
+    const utmContentValueSource = useTinybirdFilterValueSource('utm_content', filters);
+    const utmTermValueSource = useTinybirdFilterValueSource('utm_term', filters);
+    const sourceValueSource = useTinybirdFilterValueSource('source', filters);
+    const deviceValueSource = useTinybirdFilterValueSource('device', filters);
+    const locationValueSource = useTinybirdFilterValueSource('location', filters);
+    const postValueSource = usePostValueSource(filters);
 
     // Note: Only 'is' operator supported - Tinybird pipes only support exact match
     const supportedOperators = useMemo(() => [
@@ -348,8 +424,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                options: utmSourceOptions,
-                isLoading: utmSourceLoading,
+                valueSource: asFilterValueSource(utmSourceValueSource),
                 searchable: true,
                 selectedOptionsClassName: 'hidden'
             },
@@ -362,8 +437,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                options: utmMediumOptions,
-                isLoading: utmMediumLoading,
+                valueSource: asFilterValueSource(utmMediumValueSource),
                 className: 'w-60',
                 popoverContentClassName: 'w-60',
                 searchable: true,
@@ -378,8 +452,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                options: utmCampaignOptions,
-                isLoading: utmCampaignLoading,
+                valueSource: asFilterValueSource(utmCampaignValueSource),
                 className: 'w-60',
                 popoverContentClassName: 'w-60',
                 searchable: true,
@@ -394,8 +467,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                options: utmContentOptions,
-                isLoading: utmContentLoading,
+                valueSource: asFilterValueSource(utmContentValueSource),
                 className: 'w-60',
                 popoverContentClassName: 'w-60',
                 searchable: true,
@@ -410,8 +482,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                options: utmTermOptions,
-                isLoading: utmTermLoading,
+                valueSource: asFilterValueSource(utmTermValueSource),
                 className: 'w-60',
                 popoverContentClassName: 'w-60',
                 searchable: true,
@@ -438,9 +509,8 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                         label: 'Post or page',
                         type: 'select',
                         icon: <LucideIcon.PenLine />,
-                        options: postOptions,
+                        valueSource: asFilterValueSource(postValueSource),
                         searchable: true,
-                        isLoading: postLoading,
                         operators: supportedOperators,
                         defaultOperator: 'is',
                         className: 'w-80',
@@ -457,8 +527,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                         operators: supportedOperators,
                         defaultOperator: 'is',
                         hideOperatorSelect: true,
-                        options: sourceOptions,
-                        isLoading: sourceLoading,
+                        valueSource: asFilterValueSource(sourceValueSource),
                         className: 'w-60',
                         popoverContentClassName: 'w-60',
                         searchable: true,
@@ -473,8 +542,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                         operators: supportedOperators,
                         defaultOperator: 'is',
                         hideOperatorSelect: true,
-                        options: deviceOptions,
-                        isLoading: deviceLoading,
+                        valueSource: asFilterValueSource(deviceValueSource),
                         selectedOptionsClassName: 'hidden'
                     },
                     {
@@ -486,8 +554,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                         operators: supportedOperators,
                         defaultOperator: 'is',
                         hideOperatorSelect: true,
-                        options: locationOptions,
-                        isLoading: locationLoading,
+                        valueSource: asFilterValueSource(locationValueSource),
                         searchable: true,
                         selectedOptionsClassName: 'hidden'
                     }
@@ -498,7 +565,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 fields: utmFields
             }
         ];
-    }, [utmSourceOptions, utmSourceLoading, utmMediumOptions, utmMediumLoading, utmCampaignOptions, utmCampaignLoading, utmContentOptions, utmContentLoading, utmTermOptions, utmTermLoading, supportedOperators, postOptions, postLoading, audienceOptions, sourceOptions, sourceLoading, deviceOptions, deviceLoading, locationOptions, locationLoading]);
+    }, [audienceOptions, deviceValueSource, locationValueSource, postValueSource, sourceValueSource, supportedOperators, utmCampaignValueSource, utmContentValueSource, utmMediumValueSource, utmSourceValueSource, utmTermValueSource]);
 
     // Show clear button when there's at least one filter
     const hasFilters = filters.length > 0;
@@ -521,7 +588,6 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 keyboardShortcut="f"
                 popoverAlign={isMobile ? 'start' : (hasFilters ? 'start' : 'end')}
                 showSearchInput={false}
-                onActiveFieldChange={setActiveFilterField}
                 onChange={onChange || (() => {})}
                 {...props}
             />

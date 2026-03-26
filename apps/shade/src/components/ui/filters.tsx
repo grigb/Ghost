@@ -213,6 +213,8 @@ const FilterContext = createContext<FilterContextValue>({
 
 const useFilterContext = () => useContext(FilterContext);
 
+const SEARCH_RESET_DELAY_MS = 200;
+
 // Reusable input variant component for consistent styling
 const filterInputVariants = cva(
     [
@@ -695,6 +697,23 @@ export interface FilterFieldGroup<T = unknown> {
 // Union type for both flat and grouped field configurations
 export type FilterFieldsConfig<T = unknown> = FilterFieldConfig<T>[] | FilterFieldGroup<T>[];
 
+export interface ValueSourceParams<T = unknown> {
+    query: string;
+    selectedValues: T[];
+}
+
+export interface ValueSourceResult<T = unknown> {
+    options: FilterOption<T>[];
+    isLoading: boolean;
+    hasMore?: boolean;
+    loadMore?: () => void;
+}
+
+export interface ValueSource<T = unknown> {
+    id: string;
+    useOptions(params: ValueSourceParams<T>): ValueSourceResult<T>;
+}
+
 export interface FilterFieldConfig<T = unknown> {
     key?: string;
     label?: string;
@@ -745,12 +764,8 @@ export interface FilterFieldConfig<T = unknown> {
     offLabel?: string;
     // Input event handlers
     onInputChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    // Search event handler for select/multiselect fields
-    onSearchChange?: (searchTerm: string) => void;
-    // Controlled search value for select/multiselect fields
-    searchValue?: string;
-    // Shows loading indicator in the dropdown
-    isLoading?: boolean;
+    // Value source for select/multiselect fields
+    valueSource?: ValueSource<unknown>;
     // Default operator to use when creating a filter for this field
     defaultOperator?: string;
     // Default value to use when creating a filter for this field
@@ -763,6 +778,8 @@ export interface FilterFieldConfig<T = unknown> {
     // Auto-close dropdown after selection (even for multiselect types)
     autoCloseOnSelect?: boolean;
 }
+
+export type FieldSpec<T = unknown> = FilterFieldConfig<T>;
 
 // Helper functions to handle both flat and grouped field configurations
 const isFieldGroup = <T = unknown,>(item: FilterFieldConfig<T> | FilterFieldGroup<T>): item is FilterFieldGroup<T> => {
@@ -1000,28 +1017,31 @@ interface SelectOptionsPopoverProps<T = unknown> {
     inline?: boolean;
 }
 
-function SelectOptionsPopover<T = unknown>({
+interface ResolvedSelectOptionsPopoverProps<T = unknown> extends SelectOptionsPopoverProps<T> {
+    searchInput: string;
+    onSearchChange: (value: string) => void;
+    shouldClientFilter: boolean;
+    isLoading: boolean;
+}
+
+function ResolvedSelectOptionsPopover<T = unknown>({
     field,
     values,
     onChange,
     onClose,
-    inline = false
-}: SelectOptionsPopoverProps<T>) {
+    inline = false,
+    searchInput,
+    onSearchChange,
+    shouldClientFilter,
+    isLoading
+}: ResolvedSelectOptionsPopoverProps<T>) {
     const [open, setOpen] = useState(false);
-    const [searchInput, setSearchInput] = useState(field.searchValue || '');
     // Track selected options separately so they persist during async search
     const [cachedSelectedOptions, setCachedSelectedOptions] = useState<FilterOption<T>[]>([]);
     const context = useFilterContext();
 
-    // Sync searchInput with controlled searchValue
-    useEffect(() => {
-        if (field.searchValue !== undefined) {
-            setSearchInput(field.searchValue);
-        }
-    }, [field.searchValue]);
-
     const isMultiSelect = field.type === 'multiselect' || values.length > 1;
-    const effectiveValues = (field.value !== undefined ? (field.value as T[]) : values) || [];
+    const effectiveValues = useMemo(() => (field.value !== undefined ? (field.value as T[]) : values) || [], [field.value, values]);
 
     // Focus the search input when the popover opens
     useEffect(() => {
@@ -1040,8 +1060,7 @@ function SelectOptionsPopover<T = unknown>({
     // Memoize to get stable reference for useEffect dependency
     const optionsFromField = useMemo(
         () => field.options?.filter(opt => effectiveValues.includes(opt.value)) || [],
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [field.options, JSON.stringify(effectiveValues)]
+        [field.options, effectiveValues]
     );
 
     // Sync cached options when field options or selected values change
@@ -1078,16 +1097,12 @@ function SelectOptionsPopover<T = unknown>({
     const unselectedOptions = field.options?.filter(opt => !effectiveValues.includes(opt.value)) || [];
 
     const handleSearchChange = (value: string) => {
-        setSearchInput(value);
-        field.onSearchChange?.(value);
+        onSearchChange(value);
     };
 
     const handleClose = () => {
         setOpen(false);
-        // Only clear search if not controlled
-        if (field.searchValue === undefined) {
-            setTimeout(() => setSearchInput(''), 200);
-        }
+        setTimeout(() => onSearchChange(''), SEARCH_RESET_DELAY_MS);
         onClose?.();
     };
 
@@ -1095,7 +1110,7 @@ function SelectOptionsPopover<T = unknown>({
     if (inline) {
         return (
             <div className="w-full">
-                <Command>
+                <Command shouldFilter={shouldClientFilter}>
                     {field.searchable !== false && (
                         <CommandInput
                             className="h-8.5 text-sm"
@@ -1105,7 +1120,7 @@ function SelectOptionsPopover<T = unknown>({
                         />
                     )}
                     <CommandList className="outline-hidden">
-                        {field.isLoading ? (
+                        {isLoading ? (
                             <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
                                 <Loader2 className="mr-2 size-4 animate-spin" />
                                 {context.i18n.loading}
@@ -1207,8 +1222,8 @@ function SelectOptionsPopover<T = unknown>({
             open={open}
             onOpenChange={(isOpen) => {
                 setOpen(isOpen);
-                if (!isOpen && field.searchValue === undefined) {
-                    setTimeout(() => setSearchInput(''), 200);
+                if (!isOpen) {
+                    setTimeout(() => onSearchChange(''), SEARCH_RESET_DELAY_MS);
                 }
             }}
         >
@@ -1247,7 +1262,7 @@ function SelectOptionsPopover<T = unknown>({
                     field.className || 'w-[200px]'
                 )}
             >
-                <Command>
+                <Command shouldFilter={shouldClientFilter}>
                     {field.searchable !== false && (
                         <CommandInput
                             className="h-[34px] text-sm"
@@ -1257,7 +1272,7 @@ function SelectOptionsPopover<T = unknown>({
                         />
                     )}
                     <CommandList className="outline-hidden">
-                        {field.isLoading ? (
+                        {isLoading ? (
                             <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
                                 <Loader2 className="mr-2 size-4 animate-spin" />
                                 {context.i18n.loading}
@@ -1342,22 +1357,87 @@ function SelectOptionsPopover<T = unknown>({
     );
 }
 
+function ValueSourceSelectOptionsPopover<T = unknown>({
+    field,
+    values,
+    onChange,
+    onClose,
+    inline = false,
+    searchInput,
+    onSearchChange
+}: SelectOptionsPopoverProps<T> & {
+    field: FilterFieldConfig<T> & {valueSource: ValueSource<unknown>};
+    searchInput: string;
+    onSearchChange: (value: string) => void;
+}) {
+    const effectiveValues = useMemo(() => (field.value !== undefined ? (field.value as T[]) : values) || [], [field.value, values]);
+    const sourceState = field.valueSource.useOptions({
+        query: searchInput,
+        selectedValues: effectiveValues as unknown[]
+    });
+    const resolvedField = useMemo(() => ({
+        ...field,
+        options: sourceState.options as FilterOption<T>[]
+    }), [field, sourceState.options]);
+
+    return (
+        <ResolvedSelectOptionsPopover
+            field={resolvedField}
+            inline={inline}
+            isLoading={sourceState.isLoading}
+            searchInput={searchInput}
+            shouldClientFilter={false}
+            values={values}
+            onChange={onChange}
+            onClose={onClose}
+            onSearchChange={onSearchChange}
+        />
+    );
+}
+
+function SelectOptionsPopover<T = unknown>({
+    field,
+    values,
+    onChange,
+    onClose,
+    inline = false
+}: SelectOptionsPopoverProps<T>) {
+    const [searchInput, setSearchInput] = useState('');
+
+    if (field.valueSource) {
+        return (
+            <ValueSourceSelectOptionsPopover
+                key={field.valueSource.id}
+                field={field as FilterFieldConfig<T> & {valueSource: ValueSource<unknown>}}
+                inline={inline}
+                searchInput={searchInput}
+                values={values}
+                onChange={onChange}
+                onClose={onClose}
+                onSearchChange={setSearchInput}
+            />
+        );
+    }
+
+    return (
+        <ResolvedSelectOptionsPopover
+            field={field}
+            inline={inline}
+            isLoading={false}
+            searchInput={searchInput}
+            shouldClientFilter={true}
+            values={values}
+            onChange={onChange}
+            onClose={onClose}
+            onSearchChange={setSearchInput}
+        />
+    );
+}
+
 function FilterValueSelector<T = unknown>({field, values, onChange, operator}: FilterValueSelectorProps<T>) {
     const [open, setOpen] = useState(false);
-    const [searchInput, setSearchInput] = useState(field.searchValue || '');
+    const [searchInput, setSearchInput] = useState('');
     const context = useFilterContext();
-
-    // Sync searchInput with controlled searchValue
-    useEffect(() => {
-        if (field.searchValue !== undefined) {
-            setSearchInput(field.searchValue);
-        }
-    }, [field.searchValue]);
-
-    const handleSearchChange = (value: string) => {
-        setSearchInput(value);
-        field.onSearchChange?.(value);
-    };
 
     // Focus the search input when the popover opens
     useEffect(() => {
@@ -1676,8 +1756,8 @@ function FilterValueSelector<T = unknown>({field, values, onChange, operator}: F
             open={open}
             onOpenChange={(isOpen) => {
                 setOpen(isOpen);
-                if (!isOpen && field.searchValue === undefined) {
-                    setTimeout(() => setSearchInput(''), 200);
+                if (!isOpen) {
+                    setTimeout(() => setSearchInput(''), SEARCH_RESET_DELAY_MS);
                 }
             }}
         >
@@ -1716,18 +1796,11 @@ function FilterValueSelector<T = unknown>({field, values, onChange, operator}: F
                             className="h-[34px] text-sm"
                             placeholder={context.i18n.placeholders.searchField(field.label || '')}
                             value={searchInput}
-                            onValueChange={handleSearchChange}
+                            onValueChange={setSearchInput}
                         />
                     )}
                     <CommandList className="outline-hidden">
-                        {field.isLoading ? (
-                            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
-                                <Loader2 className="mr-2 size-4 animate-spin" />
-                                {context.i18n.loading}
-                            </div>
-                        ) : (
-                            <CommandEmpty>{context.i18n.noResultsFound}</CommandEmpty>
-                        )}
+                        <CommandEmpty>{context.i18n.noResultsFound}</CommandEmpty>
 
                         {/* Selected items */}
                         {selectedOptions.length > 0 && (

@@ -1,26 +1,20 @@
 import LabelFilterRenderer from '@src/components/label-picker/label-filter-renderer';
 import React, {useMemo} from 'react';
 import moment from 'moment-timezone';
-import {CustomRendererProps, FilterFieldConfig, FilterFieldGroup, FilterOption, LucideIcon} from '@tryghost/shade';
+import {CustomRendererProps, FilterFieldConfig, FilterFieldGroup, FilterOption, LucideIcon, ValueSource} from '@tryghost/shade';
 import {memberFields} from './member-fields';
 import type {Offer} from '@tryghost/admin-x-framework/api/offers';
 
 interface UseMemberFilterFieldsOptions {
     labelsOptions?: FilterOption[];
-    tiersOptions?: FilterOption[];
+    tierValueSource?: ValueSource<string>;
     newsletters?: Array<{slug: string; name: string; status?: string}>;
     hydratedNewsletterSlugs?: string[];
     hasMultipleTiers?: boolean;
     paidMembersEnabled?: boolean;
     emailFiltersEnabled?: boolean;
-    postResourceOptions?: FilterOption[];
-    onPostResourceSearchChange?: (search: string) => void;
-    postResourceSearchValue?: string;
-    postResourceLoading?: boolean;
-    emailResourceOptions?: FilterOption[];
-    onEmailResourceSearchChange?: (search: string) => void;
-    emailResourceSearchValue?: string;
-    emailResourceLoading?: boolean;
+    postValueSource?: ValueSource<string>;
+    emailValueSource?: ValueSource<string>;
     offers?: Offer[];
     membersTrackSources?: boolean;
     emailTrackOpens?: boolean;
@@ -29,7 +23,7 @@ interface UseMemberFilterFieldsOptions {
 }
 
 type OfferOption = FilterOption<string>;
-type SearchableFieldOverrides = Pick<FilterFieldConfig, 'options' | 'onSearchChange' | 'searchValue' | 'isLoading'>;
+type SearchableFieldOverrides = Pick<FilterFieldConfig, 'options' | 'valueSource'>;
 
 interface OperatorOption {
     value: string;
@@ -141,15 +135,11 @@ function createDateFieldConfig(key: string, defaultValue: string) {
 
 function createSearchableFieldOverrides(
     options: FilterOption[],
-    onSearchChange: ((search: string) => void) | undefined,
-    searchValue: string | undefined,
-    isLoading: boolean
+    valueSource?: ValueSource<string>
 ): SearchableFieldOverrides {
     return {
         options,
-        onSearchChange,
-        searchValue,
-        isLoading: options.length === 0 && isLoading
+        valueSource: valueSource as ValueSource<unknown> | undefined
     };
 }
 
@@ -289,20 +279,14 @@ function renderOfferFilterValues(values: string[], options: OfferOption[], offer
 
 export function useMemberFilterFields({
     labelsOptions = [],
-    tiersOptions = [],
+    tierValueSource,
     newsletters = [],
     hydratedNewsletterSlugs = [],
     hasMultipleTiers = false,
     paidMembersEnabled = false,
     emailFiltersEnabled = false,
-    postResourceOptions = [],
-    onPostResourceSearchChange,
-    postResourceSearchValue,
-    postResourceLoading = false,
-    emailResourceOptions = [],
-    onEmailResourceSearchChange,
-    emailResourceSearchValue,
-    emailResourceLoading = false,
+    postValueSource,
+    emailValueSource,
     offers = [],
     membersTrackSources = false,
     emailTrackOpens = false,
@@ -356,10 +340,8 @@ export function useMemberFilterFields({
 
         if (membersTrackSources) {
             basicFields.push(createFieldConfig('signup', createSearchableFieldOverrides(
-                postResourceOptions,
-                onPostResourceSearchChange,
-                postResourceSearchValue,
-                postResourceLoading
+                [],
+                postValueSource
             )));
         }
 
@@ -396,9 +378,7 @@ export function useMemberFilterFields({
             const subscriptionFields: FilterFieldConfig[] = [];
 
             if (hasMultipleTiers) {
-                subscriptionFields.push(createFieldConfig('tier_id', {
-                    options: tiersOptions
-                }));
+                subscriptionFields.push(createFieldConfig('tier_id', createSearchableFieldOverrides([], tierValueSource)));
             }
 
             subscriptionFields.push(
@@ -411,10 +391,8 @@ export function useMemberFilterFields({
 
             if (membersTrackSources) {
                 subscriptionFields.push(createFieldConfig('conversion', createSearchableFieldOverrides(
-                    postResourceOptions,
-                    onPostResourceSearchChange,
-                    postResourceSearchValue,
-                    postResourceLoading
+                    [],
+                    postValueSource
                 )));
             }
 
@@ -439,35 +417,27 @@ export function useMemberFilterFields({
             }
 
             emailFields.push(createFieldConfig('emails.post_id', createSearchableFieldOverrides(
-                emailResourceOptions,
-                onEmailResourceSearchChange,
-                emailResourceSearchValue,
-                emailResourceLoading
+                [],
+                emailValueSource
             )));
 
             if (emailTrackOpens) {
                 emailFields.push(createFieldConfig('opened_emails.post_id', createSearchableFieldOverrides(
-                    emailResourceOptions,
-                    onEmailResourceSearchChange,
-                    emailResourceSearchValue,
-                    emailResourceLoading
+                    [],
+                    emailValueSource
                 )));
             }
 
             if (emailTrackClicks) {
                 emailFields.push(createFieldConfig('clicked_links.post_id', createSearchableFieldOverrides(
-                    emailResourceOptions,
-                    onEmailResourceSearchChange,
-                    emailResourceSearchValue,
-                    emailResourceLoading
+                    [],
+                    emailValueSource
                 )));
             }
 
             emailFields.push(createFieldConfig('newsletter_feedback', createSearchableFieldOverrides(
-                emailResourceOptions,
-                onEmailResourceSearchChange,
-                emailResourceSearchValue,
-                emailResourceLoading
+                [],
+                emailValueSource
             )));
 
             groups.push({group: 'Email', fields: emailFields});
@@ -476,9 +446,7 @@ export function useMemberFilterFields({
         return groups;
     }, [
         emailFiltersEnabled,
-        emailResourceLoading,
-        emailResourceOptions,
-        emailResourceSearchValue,
+        emailValueSource,
         emailTrackClicks,
         emailTrackOpens,
         hasMultipleTiers,
@@ -487,13 +455,9 @@ export function useMemberFilterFields({
         newsletters,
         offers,
         hydratedNewsletterSlugs,
-        onEmailResourceSearchChange,
-        onPostResourceSearchChange,
         paidMembersEnabled,
-        postResourceLoading,
-        postResourceOptions,
-        postResourceSearchValue,
+        postValueSource,
         siteTimezone,
-        tiersOptions
+        tierValueSource
     ]);
 }

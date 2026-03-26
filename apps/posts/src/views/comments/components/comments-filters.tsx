@@ -4,53 +4,27 @@ import {
     FilterFieldConfig,
     Filters,
     LucideIcon,
+    ValueSource,
     cn
 } from '@tryghost/shade';
-import {getMember} from '@tryghost/admin-x-framework/api/members';
-import {getPost} from '@tryghost/admin-x-framework/api/posts';
-import {useFilterOptions} from '../hooks/use-filter-options';
-import {useSearchMembers} from '../hooks/use-search-members';
-import {useSearchPosts} from '../hooks/use-search-posts';
+import {useMemberValueSource} from '@src/hooks/filter-sources/use-member-value-source';
+import {usePostResourceValueSource} from '@src/hooks/filter-sources/use-post-resource-value-source';
 
 interface CommentsFiltersProps {
     filters: Filter[];
     onFiltersChange: (filters: Filter[]) => void;
-    knownPosts: Array<{ id: string; title: string }>;
-    knownMembers: Array<{ id: string; name?: string; email?: string }>;
 }
 
+const asFilterValueSource = (valueSource: ValueSource<string>): ValueSource<unknown> => {
+    return valueSource as unknown as ValueSource<unknown>;
+};
+
 const CommentsFilters: React.FC<CommentsFiltersProps> = ({
-    knownPosts,
-    knownMembers,
     filters,
     onFiltersChange
 }) => {
-    const posts = useFilterOptions({
-        knownItems: knownPosts,
-        useSearch: useSearchPosts,
-        useGetById: getPost,
-        searchFieldName: 'posts',
-        filters,
-        filterFieldName: 'post',
-        toOption: post => ({
-            value: post.id,
-            label: post.title || '(Untitled)'
-        })
-    });
-
-    const members = useFilterOptions({
-        knownItems: knownMembers,
-        useSearch: useSearchMembers,
-        useGetById: getMember,
-        searchFieldName: 'members',
-        filters,
-        filterFieldName: 'author',
-        toOption: member => ({
-            value: member.id,
-            label: member.name || 'Unknown name',
-            detail: member.email ?? '(Unknown email)'
-        })
-    });
+    const postValueSource = usePostResourceValueSource();
+    const memberValueSource = useMemberValueSource();
 
     const filterFields: FilterFieldConfig[] = useMemo(
         () => [
@@ -59,11 +33,8 @@ const CommentsFilters: React.FC<CommentsFiltersProps> = ({
                 label: 'Author',
                 type: 'select',
                 icon: <LucideIcon.User className="size-4" />,
-                options: members.options,
-                isLoading: members.options.length === 0 && members.isLoading,
-                onSearchChange: members.onSearchChange,
-                searchValue: members.searchValue,
                 searchable: true,
+                valueSource: asFilterValueSource(memberValueSource),
                 className: 'w-80',
                 popoverContentClassName: 'w-80',
                 operators: [
@@ -76,11 +47,8 @@ const CommentsFilters: React.FC<CommentsFiltersProps> = ({
                 label: 'Post',
                 type: 'select',
                 icon: <LucideIcon.FileText className="size-4" />,
-                options: posts.options,
-                isLoading: posts.options.length === 0 && posts.isLoading,
-                onSearchChange: posts.onSearchChange,
-                searchValue: posts.searchValue,
                 searchable: true,
+                valueSource: asFilterValueSource(postValueSource),
                 className: 'w-full max-w-80',
                 popoverContentClassName: 'w-full max-w-[calc(100vw-32px)] max-w-80',
                 operators: [
@@ -145,7 +113,7 @@ const CommentsFilters: React.FC<CommentsFiltersProps> = ({
                 ]
             }
         ],
-        [posts, members]
+        [memberValueSource, postValueSource]
     );
 
     const hasFilters = filters.length > 0;

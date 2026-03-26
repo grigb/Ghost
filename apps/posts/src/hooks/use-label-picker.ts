@@ -1,5 +1,6 @@
-import {Label, useBrowseLabels, useCreateLabel, useDeleteLabel, useEditLabel} from '@tryghost/admin-x-framework/api/labels';
-import {useCallback, useMemo, useRef} from 'react';
+import {Label, useCreateLabel, useDeleteLabel, useEditLabel} from '@tryghost/admin-x-framework/api/labels';
+import {useCallback, useMemo, useRef, useState} from 'react';
+import {useLabelValueSource} from './filter-sources/use-label-value-source';
 
 export interface UseLabelPickerOptions {
     selectedSlugs: string[];
@@ -9,8 +10,11 @@ export interface UseLabelPickerOptions {
 export interface UseLabelPickerResult {
     labels: Label[];
     selectedSlugs: string[];
+    resolvedSelectedLabels: Label[];
 
     isLoading: boolean;
+    searchValue: string;
+    onSearchChange: (search: string) => void;
     toggleLabel: (slug: string) => void;
     createLabel: (name: string) => Promise<Label | undefined>;
     editLabel: (id: string, name: string) => Promise<void>;
@@ -24,8 +28,21 @@ export function useLabelPicker({
     selectedSlugs,
     onSelectionChange
 }: UseLabelPickerOptions): UseLabelPickerResult {
-    const {data: labelsData, isLoading} = useBrowseLabels({searchParams: {limit: '100'}});
-    const labels = useMemo(() => labelsData?.labels || [], [labelsData]);
+    const labelValueSource = useLabelValueSource();
+    const [searchValue, setSearchValue] = useState('');
+    const labelSourceState = labelValueSource.useOptions({
+        query: searchValue,
+        selectedValues: selectedSlugs
+    });
+    const labels = useMemo(() => {
+        return labelSourceState.options.map(option => ({
+            id: String(option.metadata?.id || option.value),
+            name: option.label,
+            slug: String(option.value),
+            created_at: '',
+            updated_at: ''
+        }));
+    }, [labelSourceState.options]);
 
     const {mutateAsync: createLabelMutation, isLoading: isCreating} = useCreateLabel();
     const {mutateAsync: editLabelMutation} = useEditLabel();
@@ -99,7 +116,12 @@ export function useLabelPicker({
     return {
         labels,
         selectedSlugs,
-        isLoading,
+        resolvedSelectedLabels: selectedSlugs
+            .map(slug => labels.find(label => label.slug === slug))
+            .filter((label): label is Label => !!label),
+        isLoading: labelSourceState.isLoading,
+        searchValue,
+        onSearchChange: setSearchValue,
         toggleLabel,
         createLabel,
         editLabel,
