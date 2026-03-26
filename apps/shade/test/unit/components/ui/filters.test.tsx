@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {act, fireEvent, render, screen, waitFor} from '../../utils/test-utils';
 import {afterEach, beforeAll, describe, expect, it, vi} from 'vitest';
 import {createFilter, Filters, ValueSource} from '../../../../src/components/ui/filters';
