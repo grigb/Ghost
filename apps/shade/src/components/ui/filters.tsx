@@ -1034,14 +1034,14 @@ function ResolvedSelectOptionsPopover<T = unknown>({
     onSearchChange,
     shouldClientFilter,
     isLoading
-}: ResolvedSelectOptionsPopoverProps<T>) {
+}: Readonly<ResolvedSelectOptionsPopoverProps<T>>) {
     const [open, setOpen] = useState(false);
     // Track selected options separately so they persist during async search
     const [cachedSelectedOptions, setCachedSelectedOptions] = useState<FilterOption<T>[]>([]);
     const context = useFilterContext();
 
     const isMultiSelect = field.type === 'multiselect' || values.length > 1;
-    const effectiveValues = useMemo(() => (field.value !== undefined ? (field.value as T[]) : values) || [], [field.value, values]);
+    const effectiveValues = useMemo(() => field.value ?? values, [field.value, values]);
 
     // Focus the search input when the popover opens
     useEffect(() => {
@@ -1365,15 +1365,15 @@ function ValueSourceSelectOptionsPopover<T = unknown>({
     inline = false,
     searchInput,
     onSearchChange
-}: SelectOptionsPopoverProps<T> & {
+}: Readonly<SelectOptionsPopoverProps<T> & {
     field: FilterFieldConfig<T> & {valueSource: ValueSource<unknown>};
     searchInput: string;
     onSearchChange: (value: string) => void;
-}) {
-    const effectiveValues = useMemo(() => (field.value !== undefined ? (field.value as T[]) : values) || [], [field.value, values]);
+}>) {
+    const effectiveValues = useMemo(() => field.value ?? values, [field.value, values]);
     const sourceState = field.valueSource.useOptions({
         query: searchInput,
-        selectedValues: effectiveValues as unknown[]
+        selectedValues: effectiveValues
     });
     const resolvedField = useMemo(() => ({
         ...field,

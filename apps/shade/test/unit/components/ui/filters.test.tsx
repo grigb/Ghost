@@ -13,7 +13,7 @@ const ALL_OPTIONS: TestOption[] = [
     {value: 'draft', label: 'Draft'}
 ];
 
-function TestFilters({valueSource}: {valueSource: ValueSource<string>}) {
+function TestFilters({valueSource}: Readonly<{valueSource: ValueSource<string>}>) {
     const [filters, setFilters] = useState([createFilter('status', 'is', ['published'])]);
     const fields = useMemo(() => ([
         {
@@ -40,9 +40,17 @@ function openSelectedValuePopover() {
 describe('Filters ValueSource', () => {
     beforeAll(() => {
         global.ResizeObserver = class {
-            observe() {}
-            unobserve() {}
-            disconnect() {}
+            observe() {
+                return undefined;
+            }
+
+            unobserve() {
+                return undefined;
+            }
+
+            disconnect() {
+                return undefined;
+            }
         } as unknown as typeof ResizeObserver;
         HTMLElement.prototype.scrollIntoView = vi.fn();
     });

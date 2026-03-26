@@ -139,7 +139,7 @@ function createSearchableFieldOverrides(
 ): SearchableFieldOverrides {
     return {
         options,
-        valueSource: valueSource as ValueSource<unknown> | undefined
+        valueSource
     };
 }
 
