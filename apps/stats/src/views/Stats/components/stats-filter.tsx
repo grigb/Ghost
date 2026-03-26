@@ -127,10 +127,6 @@ const mergeFilterOptions = <T = string,>(...lists: Array<Array<FilterOption<T>> 
     return [...merged.values()];
 };
 
-const asFilterValueSource = (valueSource: ValueSource<string>): ValueSource<unknown> => {
-    return valueSource as unknown as ValueSource<unknown>;
-};
-
 const buildTinybirdOptions = (
     data: unknown,
     definition?: FilterFieldDefinition
@@ -424,7 +420,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                valueSource: asFilterValueSource(utmSourceValueSource),
+                valueSource: utmSourceValueSource,
                 searchable: true,
                 selectedOptionsClassName: 'hidden'
             },
@@ -437,7 +433,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                valueSource: asFilterValueSource(utmMediumValueSource),
+                valueSource: utmMediumValueSource,
                 className: 'w-60',
                 popoverContentClassName: 'w-60',
                 searchable: true,
@@ -452,7 +448,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                valueSource: asFilterValueSource(utmCampaignValueSource),
+                valueSource: utmCampaignValueSource,
                 className: 'w-60',
                 popoverContentClassName: 'w-60',
                 searchable: true,
@@ -467,7 +463,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                valueSource: asFilterValueSource(utmContentValueSource),
+                valueSource: utmContentValueSource,
                 className: 'w-60',
                 popoverContentClassName: 'w-60',
                 searchable: true,
@@ -482,7 +478,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                 operators: supportedOperators,
                 defaultOperator: 'is',
                 hideOperatorSelect: true,
-                valueSource: asFilterValueSource(utmTermValueSource),
+                valueSource: utmTermValueSource,
                 className: 'w-60',
                 popoverContentClassName: 'w-60',
                 searchable: true,
@@ -509,7 +505,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                         label: 'Post or page',
                         type: 'select',
                         icon: <LucideIcon.PenLine />,
-                        valueSource: asFilterValueSource(postValueSource),
+                        valueSource: postValueSource,
                         searchable: true,
                         operators: supportedOperators,
                         defaultOperator: 'is',
@@ -527,7 +523,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                         operators: supportedOperators,
                         defaultOperator: 'is',
                         hideOperatorSelect: true,
-                        valueSource: asFilterValueSource(sourceValueSource),
+                        valueSource: sourceValueSource,
                         className: 'w-60',
                         popoverContentClassName: 'w-60',
                         searchable: true,
@@ -542,7 +538,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                         operators: supportedOperators,
                         defaultOperator: 'is',
                         hideOperatorSelect: true,
-                        valueSource: asFilterValueSource(deviceValueSource),
+                        valueSource: deviceValueSource,
                         selectedOptionsClassName: 'hidden'
                     },
                     {
@@ -554,7 +550,7 @@ function StatsFilter({filters, onChange, ...props}: StatsFilterProps) {
                         operators: supportedOperators,
                         defaultOperator: 'is',
                         hideOperatorSelect: true,
-                        valueSource: asFilterValueSource(locationValueSource),
+                        valueSource: locationValueSource,
                         searchable: true,
                         selectedOptionsClassName: 'hidden'
                     }

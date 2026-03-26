@@ -1,12 +1,11 @@
-import LabelFilterRenderer from '@src/components/label-picker/label-filter-renderer';
 import React, {useMemo} from 'react';
 import moment from 'moment-timezone';
-import {CustomRendererProps, FilterFieldConfig, FilterFieldGroup, FilterOption, LucideIcon, ValueSource} from '@tryghost/shade';
+import {FilterFieldConfig, FilterFieldGroup, FilterOption, LucideIcon, ValueSource} from '@tryghost/shade';
 import {memberFields} from './member-fields';
 import type {Offer} from '@tryghost/admin-x-framework/api/offers';
 
 interface UseMemberFilterFieldsOptions {
-    labelsOptions?: FilterOption[];
+    labelValueSource?: ValueSource<string>;
     tierValueSource?: ValueSource<string>;
     newsletters?: Array<{slug: string; name: string; status?: string}>;
     hydratedNewsletterSlugs?: string[];
@@ -278,7 +277,7 @@ function renderOfferFilterValues(values: string[], options: OfferOption[], offer
 }
 
 export function useMemberFilterFields({
-    labelsOptions = [],
+    labelValueSource,
     tierValueSource,
     newsletters = [],
     hydratedNewsletterSlugs = [],
@@ -315,12 +314,11 @@ export function useMemberFilterFields({
             createFieldConfig('email')
         ];
 
-        if (labelsOptions.length > 0) {
-            basicFields.push(createFieldConfig('label', {
-                type: 'select',
-                options: labelsOptions,
-                customRenderer: props => React.createElement(LabelFilterRenderer, props as CustomRendererProps<string>)
-            }));
+        if (labelValueSource) {
+            basicFields.push(createFieldConfig('label', createSearchableFieldOverrides(
+                [],
+                labelValueSource
+            )));
         }
 
         if (activeNewsletters.length <= 1) {
@@ -450,7 +448,7 @@ export function useMemberFilterFields({
         emailTrackClicks,
         emailTrackOpens,
         hasMultipleTiers,
-        labelsOptions,
+        labelValueSource,
         membersTrackSources,
         newsletters,
         offers,

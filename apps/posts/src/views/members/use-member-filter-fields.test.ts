@@ -17,18 +17,15 @@ vi.mock('@tryghost/shade', () => ({
     })
 }));
 
-vi.mock('@src/components/label-picker/label-filter-renderer', () => ({
-    default: () => null
-}));
-
 describe('useMemberFilterFields', () => {
+    const labelValueSource = {id: 'labels', useOptions: vi.fn()} as unknown as ValueSource<string>;
     const postValueSource = {id: 'posts', useOptions: vi.fn()} as unknown as ValueSource<string>;
     const emailValueSource = {id: 'emails', useOptions: vi.fn()} as unknown as ValueSource<string>;
     const tierValueSource = {id: 'tiers', useOptions: vi.fn()} as unknown as ValueSource<string>;
 
     it('hydrates grouped member fields from the local schema', () => {
         const {result} = renderHook(() => useMemberFilterFields({
-            labelsOptions: [{value: 'vip', label: 'VIP'}],
+            labelValueSource,
             newsletters: [{slug: 'weekly', name: 'Weekly', status: 'active'}],
             paidMembersEnabled: true,
             emailFiltersEnabled: true,
@@ -55,8 +52,10 @@ describe('useMemberFilterFields', () => {
         const emailPostField = emailFields.find(field => field.key === 'emails.post_id');
 
         expect(labelField?.operators?.map(operator => operator.value)).toEqual(memberFields.label.operators);
-        expect(labelField?.options).toEqual([{value: 'vip', label: 'VIP'}]);
-        expect(labelField?.customRenderer).toBeTypeOf('function');
+        expect(labelField).toMatchObject({
+            options: [],
+            valueSource: labelValueSource
+        });
 
         expect(signupField).toMatchObject({
             options: [],

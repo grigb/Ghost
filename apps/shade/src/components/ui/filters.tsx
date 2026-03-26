@@ -697,19 +697,17 @@ export interface FilterFieldGroup<T = unknown> {
 // Union type for both flat and grouped field configurations
 export type FilterFieldsConfig<T = unknown> = FilterFieldConfig<T>[] | FilterFieldGroup<T>[];
 
-export interface ValueSourceParams<T = unknown> {
+export interface ValueSourceParams<T = string> {
     query: string;
     selectedValues: T[];
 }
 
-export interface ValueSourceResult<T = unknown> {
+export interface ValueSourceResult<T = string> {
     options: FilterOption<T>[];
     isLoading: boolean;
-    hasMore?: boolean;
-    loadMore?: () => void;
 }
 
-export interface ValueSource<T = unknown> {
+export interface ValueSource<T = string> {
     id: string;
     useOptions(params: ValueSourceParams<T>): ValueSourceResult<T>;
 }
@@ -765,7 +763,7 @@ export interface FilterFieldConfig<T = unknown> {
     // Input event handlers
     onInputChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
     // Value source for select/multiselect fields
-    valueSource?: ValueSource<unknown>;
+    valueSource?: ValueSource<string>;
     // Default operator to use when creating a filter for this field
     defaultOperator?: string;
     // Default value to use when creating a filter for this field
@@ -1366,14 +1364,14 @@ function ValueSourceSelectOptionsPopover<T = unknown>({
     searchInput,
     onSearchChange
 }: Readonly<SelectOptionsPopoverProps<T> & {
-    field: FilterFieldConfig<T> & {valueSource: ValueSource<unknown>};
+    field: FilterFieldConfig<T> & {valueSource: ValueSource<string>};
     searchInput: string;
     onSearchChange: (value: string) => void;
 }>) {
     const effectiveValues = useMemo(() => field.value ?? values, [field.value, values]);
     const sourceState = field.valueSource.useOptions({
         query: searchInput,
-        selectedValues: effectiveValues
+        selectedValues: effectiveValues as string[]
     });
     const resolvedField = useMemo(() => ({
         ...field,
@@ -1408,7 +1406,7 @@ function SelectOptionsPopover<T = unknown>({
         return (
             <ValueSourceSelectOptionsPopover
                 key={field.valueSource.id}
-                field={field as FilterFieldConfig<T> & {valueSource: ValueSource<unknown>}}
+                field={field as FilterFieldConfig<T> & {valueSource: ValueSource<string>}}
                 inline={inline}
                 searchInput={searchInput}
                 values={values}

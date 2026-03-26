@@ -4,7 +4,6 @@ import {
     FilterFieldConfig,
     Filters,
     LucideIcon,
-    ValueSource,
     cn
 } from '@tryghost/shade';
 import {useMemberValueSource} from '@src/hooks/filter-sources/use-member-value-source';
@@ -14,10 +13,6 @@ interface CommentsFiltersProps {
     filters: Filter[];
     onFiltersChange: (filters: Filter[]) => void;
 }
-
-const asFilterValueSource = (valueSource: ValueSource<string>): ValueSource<unknown> => {
-    return valueSource as unknown as ValueSource<unknown>;
-};
 
 const CommentsFilters: React.FC<CommentsFiltersProps> = ({
     filters,
@@ -34,7 +29,7 @@ const CommentsFilters: React.FC<CommentsFiltersProps> = ({
                 type: 'select',
                 icon: <LucideIcon.User className="size-4" />,
                 searchable: true,
-                valueSource: asFilterValueSource(memberValueSource),
+                valueSource: memberValueSource,
                 className: 'w-80',
                 popoverContentClassName: 'w-80',
                 operators: [
@@ -48,7 +43,7 @@ const CommentsFilters: React.FC<CommentsFiltersProps> = ({
                 type: 'select',
                 icon: <LucideIcon.FileText className="size-4" />,
                 searchable: true,
-                valueSource: asFilterValueSource(postValueSource),
+                valueSource: postValueSource,
                 className: 'w-full max-w-80',
                 popoverContentClassName: 'w-full max-w-[calc(100vw-32px)] max-w-80',
                 operators: [
