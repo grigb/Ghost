@@ -37,6 +37,18 @@ function openSelectedValuePopover() {
     fireEvent.click(getSelectedValueTrigger());
 }
 
+function createMatchingValueSource() {
+    const useOptions = vi.fn(({query, selectedValues}: {query: string; selectedValues: string[]}) => ({
+        options: ALL_OPTIONS.filter((option) => {
+            return option.label.toLowerCase().includes(query.toLowerCase()) ||
+                selectedValues.includes(option.value);
+        }),
+        isLoading: false
+    }));
+
+    return {id: 'status', useOptions};
+}
+
 describe('Filters ValueSource', () => {
     beforeAll(() => {
         global.ResizeObserver = class {
@@ -60,15 +72,10 @@ describe('Filters ValueSource', () => {
     });
 
     it('calls the value source with local query state and selected values', async () => {
-        const useOptions = vi.fn(({query, selectedValues}: {query: string; selectedValues: string[]}) => ({
-            options: ALL_OPTIONS.filter((option) => {
-                return option.label.toLowerCase().includes(query.toLowerCase()) ||
-                    selectedValues.includes(option.value);
-            }),
-            isLoading: false
-        }));
+        const valueSource = createMatchingValueSource();
+        const {useOptions} = valueSource;
 
-        render(<TestFilters valueSource={{id: 'status', useOptions}} />);
+        render(<TestFilters valueSource={valueSource} />);
 
         expect(useOptions).toHaveBeenCalledWith({
             query: '',
@@ -110,15 +117,10 @@ describe('Filters ValueSource', () => {
     });
 
     it('resets the local query when the popover closes', async () => {
-        const useOptions = vi.fn(({query, selectedValues}: {query: string; selectedValues: string[]}) => ({
-            options: ALL_OPTIONS.filter((option) => {
-                return option.label.toLowerCase().includes(query.toLowerCase()) ||
-                    selectedValues.includes(option.value);
-            }),
-            isLoading: false
-        }));
+        const valueSource = createMatchingValueSource();
+        const {useOptions} = valueSource;
 
-        render(<TestFilters valueSource={{id: 'status', useOptions}} />);
+        render(<TestFilters valueSource={valueSource} />);
 
         openSelectedValuePopover();
 
