@@ -3,7 +3,8 @@ import {ValueSource, ValueSourceParams, ValueSourceResult} from '@tryghost/shade
 import {buildQuotedListFilter, filterOptionsByQuery, mergeFilterOptions} from './utils';
 import {escapeNqlString} from '@src/views/filters/filter-normalization';
 import {useDebounce} from 'use-debounce';
-import {useEffect, useMemo, useState} from 'react';
+import {useHybridSourceMode} from './use-hybrid-source-mode';
+import {useMemo} from 'react';
 
 const LABEL_PAGE_LIMIT = '100';
 
@@ -19,23 +20,17 @@ function toLabelOption(label: Label) {
 
 export function useLabelValueSource(): ValueSource<string> {
     const useLabelValueSourceOptions = ({query, selectedValues}: ValueSourceParams<string>): ValueSourceResult<string> => {
-        const [mode, setMode] = useState<'local' | 'remote' | null>(null);
         const initialBrowse = useBrowseLabels({
             searchParams: {
                 limit: LABEL_PAGE_LIMIT,
                 order: 'name asc'
             }
         });
+        const mode = useHybridSourceMode(
+            initialBrowse.data?.meta?.pagination,
+            Number(LABEL_PAGE_LIMIT)
+        );
         const [debouncedQuery] = useDebounce(mode === 'remote' ? query : '', 250);
-
-        useEffect(() => {
-            if (mode !== null || !initialBrowse.data?.meta?.pagination) {
-                return;
-            }
-
-            const pagination = initialBrowse.data.meta.pagination;
-            setMode(pagination.total <= Number(LABEL_PAGE_LIMIT) || pagination.next === null ? 'local' : 'remote');
-        }, [initialBrowse.data?.meta?.pagination, mode]);
 
         const remoteBrowse = useBrowseLabels({
             enabled: mode === 'remote',
