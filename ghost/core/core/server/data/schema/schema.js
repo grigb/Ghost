@@ -1193,5 +1193,40 @@ module.exports = {
         member_name: {type: 'string', maxlength: 191, nullable: true},
         created_at: {type: 'dateTime', nullable: false},
         updated_at: {type: 'dateTime', nullable: true}
+    },
+    gifts: {
+        id: {type: 'string', maxlength: 24, nullable: false, primary: true},
+
+        buyer_email: {type: 'string', maxlength: 191, nullable: false, validations: {isEmail: true}},
+        buyer_member_id: {type: 'string', maxlength: 24, nullable: true, unique: false, references: 'members.id', setNullDelete: true},
+
+        redeemer_member_id: {type: 'string', maxlength: 24, nullable: true, unique: false, references: 'members.id', setNullDelete: true},
+
+        tier_id: {type: 'string', maxlength: 24, nullable: false, unique: false, references: 'products.id'},
+        cadence: {
+            type: 'string', maxlength: 50, nullable: false, validations: {
+                isIn: [['month', 'year']]
+            }
+        },
+        duration: {type: 'integer', nullable: false, unsigned: true},
+
+        currency: {type: 'string', maxlength: 50, nullable: false},
+        amount: {type: 'integer', nullable: false, unsigned: true},
+
+        stripe_payment_intent_id: {type: 'string', maxlength: 255, nullable: false, unique: true},
+
+        consumes_at: {type: 'dateTime', nullable: true},
+        expires_at: {type: 'dateTime', nullable: true},
+
+        status: {
+            type: 'string', maxlength: 50, nullable: false, validations: {
+                isIn: [['purchased', 'redeemed', 'expired', 'refunded', 'consumed']]
+            }
+        },
+        purchased_at: {type: 'dateTime', nullable: false},
+        redeemed_at: {type: 'dateTime', nullable: true},
+        expired_at: {type: 'dateTime', nullable: true},
+        refunded_at: {type: 'dateTime', nullable: true},
+        consumed_at: {type: 'dateTime', nullable: true}
     }
 };
