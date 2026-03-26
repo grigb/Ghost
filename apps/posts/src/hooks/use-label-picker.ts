@@ -35,13 +35,19 @@ export function useLabelPicker({
         selectedValues: selectedSlugs
     });
     const labels = useMemo(() => {
-        return labelSourceState.options.map(option => ({
-            id: String(option.metadata?.id || option.value),
-            name: option.label,
-            slug: String(option.value),
-            created_at: '',
-            updated_at: ''
-        }));
+        return labelSourceState.options.flatMap((option) => {
+            if (!option.metadata?.id) {
+                return [];
+            }
+
+            return [{
+                id: String(option.metadata.id),
+                name: option.label,
+                slug: String(option.value),
+                created_at: '',
+                updated_at: ''
+            }];
+        });
     }, [labelSourceState.options]);
 
     const {mutateAsync: createLabelMutation, isLoading: isCreating} = useCreateLabel();
