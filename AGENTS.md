@@ -77,6 +77,8 @@ This global configuration has been carefully crafted over months of refinement. 
 2. **It blocks you from doing useful work.** While you sit polling, you are accomplishing nothing.
 3. **It accomplishes literally nothing.** You are automatically notified when background tasks complete. The notification system exists precisely so you do not need to poll.
 
+**This includes Codex native multi-agent work: background-agent completions are surfaced programmatically to the parent thread. Do NOT model Codex as a poll-only runtime.**
+
 **THE CORRECT BEHAVIOR IS:**
 1. Launch background agents/tasks.
 2. **Immediately continue working on other tasks.** Do not wait. Do not check. Do not look.
@@ -114,7 +116,7 @@ Never use the AskUserQuestion tool (error-prone). Ask questions directly in plai
 1. **Version Check**: `~/.agents/scripts/check-rules-datetime.sh`
 2. **Track Session**: `~/.agents/scripts/track-project.sh "[project]" "Session started" "description" "$TOOL"`
 3. **Check STATE-OF-THE-PROJECT**: Look in `.dev/ai/` or `docs/` (create from template if missing)
-4. **Review context**: Check `.dev/ai/{audits,findings,handoffs,changelogs,workorders,proposals}/` for recent history
+4. **Review context**: Check `.dev/ai/{sessions,audits,findings,handoffs,changelogs,workorders,proposals}/` for recent history
 5. **Read project docs** referenced in STATE-OF-THE-PROJECT
 
 **Fast File Lookup:**
@@ -124,6 +126,13 @@ ALWAYS check `~/.agents/prompts/PROMPT-PATH-INDEX.md` FIRST before searching for
 - **Index:** `~/.agents/docs/coding-rules/INDEX.md`
 - **General Rules:** `~/.agents/docs/coding-rules/GENERAL-RULES.md`
 - **CRITICAL Rule G1:** BEFORE adding any function/class/method, SEARCH for existing implementations with same or similar names. MODIFY existing code instead of creating duplicates.
+
+**🚨 MODEL SELECTION (MANDATORY FOR ORCHESTRATORS/SUPERVISORS):**
+- **Policy:** `~/.agents/docs/MODEL-SELECTION-POLICY.md` — which model + effort level to use per complexity tier
+- **Script:** `~/.agents/tools/usage-management/scripts/select-model.sh <tier>` — returns cheapest passing model
+- **Tier classifier:** `~/.agents/tools/usage-management/benchmarks/scripts/classify-tier.sh <WO.md>` — returns 1/2/3
+- **Never hardcode model choices** — always use select-model.sh or the policy defaults
+- **Inference Access:** `~/.agents/docs/INFERENCE-ACCESS-GUIDE.md` — how to call any model from any agent
 
 ---
 
@@ -157,6 +166,7 @@ User assigns a role with phrases like:
 | dev | Implement from work orders | Creating new work orders (unless blocking) |
 | qa | Verify implementations, run tests | Implementing features |
 | commit | Execute Smart Commit Mode | Creating work orders, implementing features |
+| project steward | Capture monologues, maintain project-local wisdom, map dependencies, create/refine WOs | Cross-project blocker supervision, generic implementation without a scoped WO |
 
 **Details:** Read the role prompt (`~/.agents/prompts/agents/agent-[role].md`). Full role list: `~/.agents/prompts/agents/_AGENT-INDEX.md`.
 
@@ -177,13 +187,20 @@ User assigns a role with phrases like:
 | `qa`, `qa agent` | `agent-qa-full-review.md` | Quality assurance |
 | `orchestrator`, `orchestrate`, `coordinate`, `orchestration`, `launch orchestrator` | `agent-orchestrator.md` | **Conductor, not musician.** Delegates to workers, NEVER executes. One approval → runs to completion. |
 | `manager orchestrator`, `coordinate projects`, `portfolio` | `agent-manager-orchestrator.md` | **VP, not engineer.** Coordinates orchestrators, not workers. Multi-project scope. |
+| `project steward`, `you are the project steward`, `steward this project`, `steward of this project`, `project advisor`, `project supervisor`, `project brief`, `steward brief`, `capture this monologue`, `turn this into work orders` | `agent-project-steward.md` | Single-project advisor/operator. Captures raw thinking, maintains project-local wisdom, maps dependencies, briefs top-down, and turns durable needs into WOs. |
 | `assistant`, `be my assistant` | `agent-assistant.md` | **L1 Hierarchy.** User-facing daemon. Delegates everything, never implements. |
 | `blueprint keeper`, `check vision`, `vision alignment` | `agent-blueprint-keeper.md` | **L2 Hierarchy.** Strategic vision guardian. Cascades vision changes. |
 | `request router`, `route request`, `evaluate request` | `agent-request-router.md` | **L3 Hierarchy.** Blueprint-aware gatekeeper. Creates WOs from validated requests. |
 | `gas manager`, `gas team`, `gas teams`, `launch gas team`, `launch gas teams`, `execute work orders`, `run gas loop` | `agent-gas-manager.md` | **L4 Hierarchy.** Autonomous WO execution engine. Spawns workers, monitors completion. |
+| `blocker supervisor`, `you are the supervisor`, `act as supervisor`, `supervisor` (when context is blockers) | `agent-blocker-supervisor.md` | Cross-project router. Identifies user intent and dispatches to catalog scan, resolution, registry CLI, master-index inspection, or manual lifecycle transitions. Default mode is ADVISOR. |
+| `blocker cataloger`, `scan blockers`, `catalog blockers` | `agent-blocker-supervisor-cataloger.md` | Cross-project blocker scan; emits per-project + master indexes. Scanner only. |
+| `blocker engineer`, `unblock me`, `unblock work`; optional workstream form: `unblock workstream {ws} [in {abs-path}]` | `agent-blocker-supervisor-unblocker.md` | Picks up idle blockers, attempts resolution, surfaces unresolvable to user. Workstream form (BLK-014) filters by `(project, workstream)`. |
 | `trio`, `activate trio` | All three agents | Multi-agent coordination |
 | `commit agent`, `smart commit` | `SMART-COMMIT-MODE.md` | Intelligent commits |
 | `design parity audit`, `run design audit`, `design audit`, `DPA`, `journey audit`, `check design parity`, `are the specs implemented` | `DESIGN-PARITY-AUDIT-MODE.md` | Three-parity audit: Vision-to-Design, Design-to-Code, Journey-to-Experience. Parallel agents, delta tracking, remediation WOs. |
+| `copy first`, `copy-first web`, `markdown first`, `write the website`, `content before code` | `~/.agents/skills/copy-first-web/methodology.md` | Copy-first web development: perfect copy in markdown before building pages. Architecture analysis, deduplication, audience routing, parallel copywriter dispatch, then implementation. |
+
+**See also (Blocker Engineer):** `~/.agents/docs/overviews/BLOCKER-ENGINEER-OVERVIEW.md` — cataloger + unblocker subsystem; user-attention queue at `~/.agents/.dev/ai/blockers/MASTER-INDEX.md`.
 
 ### Self-Activation Protocol
 
@@ -292,6 +309,7 @@ User Input -> Triage (capture) -> Dev (implement) -> QA (verify) -> Complete
 - **Gastown (Multi-Agent)**: `~/.agents/docs/overviews/GASTOWN-OVERVIEW.md`
 - **Agent Teams (Multi-Agent Coordination)**: `~/.agents/docs/overviews/AGENT-TEAMS-OVERVIEW.md`
 - **GAS Hierarchy (5-Layer Autonomous Agent Hierarchy)**: `~/.agents/docs/overviews/GAS-HIERARCHY-OVERVIEW.md`
+- **GPU Cluster (Local LLM Inference Backend)**: `~/.agents/docs/overviews/GPU-CLUSTER-INTEGRATION.md` — Read before touching any code that consumes LLM inference. GAS uses a local Ubuntu GPU server (`gpu-server` / `192.168.4.21`) as primary; covers architecture, usage patterns, testing, debugging, and change-safety rules.
 
 ### Available Guides
 
@@ -305,6 +323,8 @@ User Input -> Triage (capture) -> Dev (implement) -> QA (verify) -> Complete
 
 **Current baseline:**
 - **Codex runtime:** Multi-agent requires `~/.codex/config.toml` with `[features] multi_agent = true`. Native Agent Teams are not available yet; use GAS file-based team coordination (`subtask-comms/`, work orders, and shared state files) until native teams land.
+  - Native completion path: Codex background-agent completions are surfaced programmatically to the parent thread.
+  - Hook/bridge tracking is for observability and dashboards; it is **NOT** the mechanism that tells the parent Codex agent a worker finished.
 - **Claude Code 4.6+:** Multi-agent is baseline behavior. Agent Teams require file setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` under `env` in Claude settings JSON.
 - **Tracking/dashboard integration:** Team and multi-agent events are routed through `~/.agents/hooks-integration/dispatcher.sh` and persisted for dashboards/monitoring. Keep hooks enabled in settings so agent-team events are captured.
 
@@ -410,21 +430,19 @@ For any multi-component system (Providers, LLMs, APIs), define explicit verifica
 
 **Forbidden:**
 - **NEVER poll TaskOutput** (agents are notified automatically)
-- **NEVER use Haiku** for subtasks (unreliable, banned)
 - **NEVER react to individual completions** in parallel batches
 
-**Model Selection (read before every delegation):**
-- **Opus**: Planning, orchestration, reviews, decisions, ambiguous work, documentation.
-- **Sonnet**: Leaf-node execution when ALL five met: tight spec, mechanical verification, low stakes, short horizon, no steering. ~40% cheaper — use it for well-defined work.
-- **Haiku**: FORBIDDEN.
-- Sonnet-safe examples: implement function with spec+tests, single-file refactor, data transforms, well-defined code migrations.
-- Escalate Sonnet→Opus on iteration #2 or if uncertainty appears.
-- Canonical rubric (MUST READ for first-time delegators): `~/.agents-gas-prompt-library/workflows/opus_vs_sonnet_decision_guide_token_efficient.md`
+**Model Selection (MANDATORY — read before every delegation):**
+- **Single source of truth:** `~/.agents/docs/MODEL-SELECTION-POLICY.md`
+- **Script:** `~/.agents/tools/usage-management/scripts/select-model.sh <tier>` — returns cheapest passing model + effort level
+- **Tier classifier:** `~/.agents/tools/usage-management/benchmarks/scripts/classify-tier.sh <WO.md>` — returns 1 (Simple), 2 (Standard), 3 (Complex)
+- Do not hardcode model choices — the policy updates as benchmarks complete and models improve.
 
 **Required:**
 - Always `run_in_background=true`
 - Always write to `.dev/ai/subtask-comms/`
 - Always verify before marking complete
+- In Codex, use `wait_agent` only as a bounded synchronization step when the next action is blocked or a batch boundary has been reached. It is **NOT** the primary completion mechanism.
 
 **Delegation Mode Selection (decide before dispatching parallel work):**
 - **Sub-agents** (default): Independent tasks, fire-and-forget, no inter-agent communication. Use `Task(run_in_background=true)`.
@@ -575,7 +593,7 @@ memory recent --hours 24
 
 | Step | Action | Key File/Command |
 |------|--------|------------------|
-| 0 | Emergency handoff check | `ls ~/.agents/.dev/emergency-handover/*.trigger` |
+| 0 | Emergency closeout check | `ls ~/.agents/.dev/emergency-handover/*.trigger` |
 | 0.5 | AGENTS.md freshness | `~/.agents/scripts/check-agents-freshness.sh "$(pwd)"` |
 | 1 | Check rule updates | `~/.agents/scripts/check-rules-datetime.sh` |
 | 2 | **TRACK SESSION** (mandatory) | `~/.agents/scripts/track-project.sh "[project]" "Session started" "desc" "$TOOL"` |
@@ -597,7 +615,7 @@ memory recent --hours 24
 - First session in any project
 - Need staleness check scripts
 - Creating STATE-OF-THE-PROJECT for first time
-- Understanding emergency handoff protocol
+- Understanding emergency closeout protocol
 
 **⛔ Onboarding is invalid without Step 2 tracking ⛔**
 
@@ -754,6 +772,15 @@ SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 **External File:** `~/.agents/prompts/agents/agent-manager-orchestrator.md`
 
 **Purpose:** Coordinates OTHER orchestrators (multi-project). "VP, not engineer."
+
+---
+## PROJECT STEWARD MODE
+
+**Trigger phrases:** "project steward", "you are the project steward", "steward this project", "steward of this project", "project advisor", "project supervisor", "project brief", "steward brief", "capture this monologue", "turn this into work orders"
+**External File:** `~/.agents/prompts/agents/agent-project-steward.md`
+**Bootstrap:** `~/.agents/docs/PROJECT-STEWARD-BOOTSTRAP-CHECKLIST.md`
+
+**Purpose:** Single-project advisor/operator. Captures raw monologues before synthesis, maintains project-local wisdom under `.dev/ai/roles/project-steward/`, keeps owner-private context out of project-readable files, produces top-level-down strategic briefs with blockers/unblock paths, maps dependencies, creates/refines work orders, and separates universal GAS process from project-specific knowledge.
 
 ---
 ## YOUTUBE TRANSCRIPT MODE
@@ -1087,7 +1114,7 @@ wc -l CLAUDE.md AGENTS.md PROJECT-RULES.md .cursor/rules/default-rules.mdc
 
 ## 🎬 Session End Protocol (INBOX)
 
-Before ending session (only create handoff if work is UNFINISHED):
+Before ending session (after INBOX capture, choose the correct closeout artifact):
 
 1. **Quick INBOX check** (30 seconds):
    - Did you encounter any ideas worth saving?
@@ -1100,55 +1127,94 @@ Before ending session (only create handoff if work is UNFINISHED):
 echo "[capture]" >> ~/INBOX/[file].md
 ```
 
-3. **Then proceed** with handoff or session end.
+3. **Then proceed** with the correct closeout path:
+   - Normal session close or combined continuity record -> use `/close-session` / session record flow, save to `.dev/ai/sessions/`
+   - Explicit request for legacy standard handoff output -> use compatibility handoff flow in `.dev/ai/handoffs/`
+   - Orchestration transfer, delegation, or multi-agent coordination -> use `ORCHESTRATION-HANDOFF` / orchestration handoff flow, keep orchestration outputs in `.dev/ai/subtask-comms/` or the explicitly requested coordination path
+   - Explicit historical-only record request -> use legacy audit/accomplishment flow
 
 **Benefit**: Prevents "shower thoughts" - ideas that come after session ends.
 
 ---
 
-## 📋 HANDOFFS VS AUDITS VS ACCOMPLISHMENTS (CRITICAL DISTINCTION)
+## 📋 SESSION RECORDS VS LEGACY HANDOFFS VS ORCHESTRATION HANDOFFS VS LEGACY AUDITS (CRITICAL DISTINCTION)
 
 **When to create what:**
 
-### CREATE HANDOFF when:
-- ✅ Work is UNFINISHED and needs continuation
-- ✅ You're stopping mid-task
-- ✅ Another agent needs to pick up where you left off
-- ✅ There are SPECIFIC NEXT ACTIONS to execute
-- ✅ **USER EXPLICITLY REQUESTS a handoff**, regardless of work completion status
+### CREATE SESSION RECORD when:
+- ✅ User requests `/close-session`, "close session", "create session record", "wrap this session", "save the session", or a combined audit + next-steps artifact
+- ✅ You are ending a session and need one artifact that preserves forward actionability and backward traceability together
+- ✅ Work may be complete or unfinished, but the goal is session close rather than active delegation
+- ✅ Low-context or emergency routine closeout is needed and the work is not orchestration/delegation
+- **Location:** `.dev/ai/sessions/`
+- **Purpose:** Unified end-of-session record for recovery, review, and next-session continuation
+
+### CREATE ORCHESTRATION HANDOFF when:
+- ✅ You're delegating work mid-execution or transferring orchestration state
+- ✅ Another agent needs coordination context now, not a general session-close record
+- ✅ The destination is `.dev/ai/subtask-comms/` or another explicit coordination path
+- ✅ There are SPECIFIC NEXT ACTIONS to execute as part of active delegation or orchestration
+- **Location:** orchestration-specific handoff target such as `.dev/ai/subtask-comms/`
+- **Purpose:** Pass active delegation or orchestration context to the next agent; this remains separate from `/close-session`
+
+### CREATE LEGACY STANDARD HANDOFF when:
+- ✅ The user explicitly asks for a standard handoff
+- ✅ An older workflow or downstream consumer explicitly expects a `.dev/ai/handoffs/` artifact
+- ✅ You must preserve compatibility with a historical handoff-only process
 - **Location:** `.dev/ai/handoffs/`
-- **Purpose:** Pass unfinished work OR preserve critical context for future work to next agent
+- **Purpose:** Compatibility-only continuation artifact; not a routine session-close default
 
-### CREATE AUDIT/ACCOMPLISHMENT when:
-- ✅ Work is COMPLETE and no handoff is needed
-- ✅ You've finished all requested tasks and user doesn't want a handoff
-- ✅ You want to document what was done for historical record only
+### CREATE LEGACY AUDIT / ACCOMPLISHMENT when:
+- ✅ The user explicitly asks for a standalone historical-only audit
+- ✅ An older workflow explicitly expects an audit file in `.dev/ai/audits/`
+- ✅ You want an accomplishment record for a completed milestone
 - **Location:** `.dev/ai/audits/` or `.dev/ai/accomplishments/`
-- **Purpose:** Document completed work without transferring active responsibility
+- **Purpose:** Legacy historical-only documentation, separate from the routine session-close flow
 
-### NEVER create handoff when:
+### NEVER create legacy standard handoff when:
+- ❌ The user wants a routine session-close record rather than a compatibility artifact
+- ❌ Work is unfinished but only needs normal session continuation
+- ❌ Low-context or emergency routine closeout is needed and there is no orchestration/delegation state to transfer
 - ❌ User explicitly says they don't want a handoff
-- ❌ There are no actionable next steps AND user hasn't requested context preservation
+- ❌ Active delegation or orchestration context should go through `ORCHESTRATION-HANDOFF`
 
-### NEVER proactively offer handoffs or audits when:
+### NEVER create legacy audit when:
+- ❌ The user wants a normal end-of-session record with next steps, current state, and traceability
+- ❌ The old audit + standard handoff pair would only be duplicating a session record
+- ❌ No explicit audit-only or compatibility requirement exists
+
+### NEVER proactively offer session records, handoffs, or audits when:
 - ❌ The session is still active and the user hasn't indicated they're done
 - ❌ A single task just completed but the user may have more work
-- **Wait for:** User says "we're done", "wrap up", "create a handoff/audit", or explicitly ends the session
+- **Wait for:** User says "we're done", "wrap up", `/close-session`, "create a handoff/audit/session record", or explicitly ends the session
 
-**Critical Rule:** Always respect explicit user requests for handoffs. If user says "create a handoff" or "your work qualifies as a necessary handoff", create the handoff regardless of whether work appears complete. Context preservation for ongoing systems takes precedence over completion status.
+**Critical Rule:** Always respect explicit user requests for orchestration handoffs, legacy standard handoffs, or legacy audits. If the user does not explicitly choose a legacy artifact and there is no compatibility requirement, use `/close-session` and create a session record.
 
-**Common mistake:** Refusing to create handoff when user explicitly requests one because "work is complete". User judgment about context preservation always overrides agent assessment of completion status.
+**Default session-close rule:** If the user wants one end-of-session artifact and does not explicitly ask for a handoff or audit, prefer `/close-session` and save the unified record to `.dev/ai/sessions/`.
 
-**Filename prefix:** All handoffs, audits, and accomplishments require timestamp prefix from `~/.agents/scripts/get-filename-prefix.sh`. Never use placeholders. See `~/.agents/docs/TIMESTAMP-UTILITIES-GUIDE.md`.
+**Backward compatibility:** Historical lookup should still review `.dev/ai/sessions/`, `.dev/ai/audits/`, and `.dev/ai/handoffs/`. Legacy audit/handoff archives remain valid historical records.
+
+**Common mistake:** Using a legacy standard handoff for routine session close when `/close-session` is the correct fit, or recreating the retired audit + handoff pair. Use session records for normal session close, `ORCHESTRATION-HANDOFF` for delegation/coordination, and legacy artifacts only when explicitly requested or required for compatibility.
+
+**Filename prefix:** All session records, handoffs, audits, and accomplishments require timestamp prefix from `~/.agents/scripts/get-filename-prefix.sh`. Never use placeholders. See `~/.agents/docs/TIMESTAMP-UTILITIES-GUIDE.md`.
 
 ---
 
-## AUDITABLE RECORD CREATION MODE
+## CLOSE SESSION MODE
+
+**Trigger phrases:** "/close-session", "close session", "create session record", "wrap this session", "save the session"
+**External File:** `~/.agents/prompts/creation/CREATE-SESSION-RECORD.md`
+
+**Purpose:** Create one unified session-close record in `.dev/ai/sessions/` that combines forward next steps, current state, and backward traceability.
+
+---
+
+## LEGACY AUDITABLE RECORD COMPATIBILITY MODE
 
 **Trigger phrases:** "create audit", "create auditable record", "audit this work", "document this session"
 **External File:** `~/.agents/prompts/creation/CREATE-AUDITABLE-RECORD.md`
 
-**Purpose:** Create comprehensive audit trail of work performed, decisions made, and changes implemented.
+**Purpose:** Create a legacy audit-only artifact when the user explicitly wants a standalone audit or an older workflow requires audit output. This is not a peer routine session-close path to `/close-session`.
 
 ---
 ## CLIENT REPORT MODE
@@ -1260,7 +1326,7 @@ PREFIX=$(~/.agents/scripts/get-filename-prefix.sh)
 ✅ "Save to `.dev/ai/reports/2025-12-23-21-15-42-report.md`"
 ```
 
-**Scope:** All files in `.dev/ai/{reports,audits,handoffs,workorders,proposals,accomplishments}/` require timestamp-prefixed filenames.
+**Scope:** All files in `.dev/ai/{reports,sessions,audits,handoffs,workorders,proposals,accomplishments}/` require timestamp-prefixed filenames.
 
 ---
 
@@ -1387,7 +1453,7 @@ ps aux | grep "[c]laude" | grep " ?? " | awk '{print $2}' | xargs kill -9 2>/dev
 
 **This applies to:**
 - ✅ Global AGENTS.md (this file)
-- ✅ External files referenced by this file (`/Users/grig/.agents/docs/`, `/Users/grig/.agents/modes/`, `/Users/grig/.agents/prompts/`, `/Users/grig/.agents/templates/`)
+- ✅ External files referenced by this file (`~/.agents/docs/`, `~/.agents/modes/`, `~/.agents/prompts/`, `~/.agents/templates/`)
 - ❌ Per-project `AGENTS.md` copies are immutable (do not edit; sync by file copy)
 - ✅ Per-project rules and configuration go in `PROJECT-RULES.md`
 
