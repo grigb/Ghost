@@ -199,6 +199,7 @@ User assigns a role with phrases like:
 | `commit agent`, `smart commit` | `SMART-COMMIT-MODE.md` | Intelligent commits |
 | `design parity audit`, `run design audit`, `design audit`, `DPA`, `journey audit`, `check design parity`, `are the specs implemented` | `DESIGN-PARITY-AUDIT-MODE.md` | Three-parity audit: Vision-to-Design, Design-to-Code, Journey-to-Experience. Parallel agents, delta tracking, remediation WOs. |
 | `copy first`, `copy-first web`, `markdown first`, `write the website`, `content before code` | `~/.agents/skills/copy-first-web/methodology.md` | Copy-first web development: perfect copy in markdown before building pages. Architecture analysis, deduplication, audience routing, parallel copywriter dispatch, then implementation. |
+| `success story`, `failure story`, `learn from this`, `store this in GAS`, `issue I need to solve`, `field protocol`, `field experience` | `~/.agents/docs/field-protocols/INDEX.md` | Situational learning/protocol lookup. Use for success/failure stories or current people/org/community/team problems; ask if outcome state is unclear; keep raw source private. |
 
 **See also (Blocker Engineer):** `~/.agents/docs/overviews/BLOCKER-ENGINEER-OVERVIEW.md` — cataloger + unblocker subsystem; user-attention queue at `~/.agents/.dev/ai/blockers/MASTER-INDEX.md`.
 
@@ -450,6 +451,43 @@ For any multi-component system (Providers, LLMs, APIs), define explicit verifica
 - **Decision test**: "Will these agents need to talk to each other during execution?" If yes -> Agent Teams. If no -> Sub-agents.
 
 **Outputs:** Use `~/.agents/templates/SUBTASK-OUTPUT-TEMPLATE.md`; return file paths only.
+
+---
+
+## 🔗 INTER-AGENT COMMUNICATION — DUAL-TRACK ARCHITECTURE
+
+**Decision memory:** `[[project_a2a_repositioned_not_retired]]` and
+`[[project_document_only_teams_architecture]]`. Do not relitigate.
+
+GAS uses **two complementary channels**, scoped by boundary:
+
+| Track | Scope | Canonical mechanism |
+|-------|-------|---------------------|
+| **Local (same machine)** | Ephemeral CLI agents on this host coordinating on this host | Documents-only teams (lock-aware, hierarchy-aware, recovery-capable) |
+| **Cross-machine / cross-vendor** | GPU server, remote collaborators, multi-vendor integrations, distributed agents | A2A (JSON-RPC 2.0) at `http://localhost:8201/a2a` |
+
+**A2A is NOT retired.** It is the cross-machine and cross-vendor channel that
+makes GAS a complete solution. A2A code under `~/.agents/tools/runtime/` stays
+where it is. The dashboard A2A views, Agent Cards, and runtime LaunchAgent
+(`ai.gas.runtime`) remain loaded. `projects.yaml` slugs and per-project
+`PROJECT-ID.md` files remain useful for cross-machine routing.
+
+**For local coordination, use documents.** Files in `.dev/ai/` directories
+(workorders, unblocks, subtask-comms, handoffs) are the source of truth. A
+document-only teams architecture (lock manager, ownership verifier, hierarchy
+status walker, harness-native keep-alive) is the design target — see the
+brief at `~/.agents/.dev/ai/proposals/2026-05-22-inter-agent-architecture-decision-brief.md`
+and forthcoming `~/.agents/docs/INTER-AGENT-DUAL-TRACK.md` once the
+document-only teams spec lands.
+
+**Rules of thumb:**
+
+- New local inter-agent coordination → documents-only (do not reach for A2A).
+- New cross-machine or cross-vendor integration → A2A.
+- A2A is NOT the primary local channel. Do not frame it that way in new docs.
+- Existing A2A notification calls in agent prompts are legacy acceleration on
+  top of the canonical file artifact; if A2A is unavailable, fall back to
+  file-only silently. Files are always the source of truth.
 
 ---
 
