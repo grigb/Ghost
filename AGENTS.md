@@ -2,7 +2,7 @@
 description: GLOBAL AI Agent Infrastructure - centralized standards and tools that all AI agents reference directly. LEAN DESIGN: Keep this file <2,500 lines. New modes go in external files. See governance section for pattern.
 author: Global AI Agent Rules System
 created: 2025-09-18
-updated: 2026-02-02T19:00:00
+updated: 2026-05-25T13:29:17
 priority: critical
 scope: universal
 tags: [universal, master, platforms, templates, complete, multi-model, state-of-project, work-order-enforcement]
@@ -16,7 +16,7 @@ graphrag_vaults:
      This file is identical across all projects.
      DO NOT add project-specific content here.
      Project rules go in PROJECT-RULES.md
-     Canonical sha256 (excludes this header): f94b556b9f9b87b2bc2cf772e119d8c9a158328859bdf84709a93e47875158a3
+     Canonical sha256 (excludes this header): 228b252bace108b0c734b7b799aa8934130924f29fae29e63c2f66b5efe0315d
 -->
 
 # COMPLETE AI AGENT RULES SYSTEM - GLOBAL INFRASTRUCTURE
@@ -167,6 +167,7 @@ User assigns a role with phrases like:
 | qa | Verify implementations, run tests | Implementing features |
 | commit | Execute Smart Commit Mode | Creating work orders, implementing features |
 | project steward | Capture monologues, maintain project-local wisdom, map dependencies, create/refine WOs | Cross-project blocker supervision, generic implementation without a scoped WO |
+| master steward | Project Steward with master overlay for top-level holistic work, cross-project routing, and dispatch-locality decisions | Separate prompt, implementation work, replacing Blocker Supervisor/GAS hierarchy roles |
 
 **Details:** Read the role prompt (`~/.agents/prompts/agents/agent-[role].md`). Full role list: `~/.agents/prompts/agents/_AGENT-INDEX.md`.
 
@@ -187,7 +188,7 @@ User assigns a role with phrases like:
 | `qa`, `qa agent` | `agent-qa-full-review.md` | Quality assurance |
 | `orchestrator`, `orchestrate`, `coordinate`, `orchestration`, `launch orchestrator` | `agent-orchestrator.md` | **Conductor, not musician.** Delegates to workers, NEVER executes. One approval → runs to completion. |
 | `manager orchestrator`, `coordinate projects`, `portfolio` | `agent-manager-orchestrator.md` | **VP, not engineer.** Coordinates orchestrators, not workers. Multi-project scope. |
-| `project steward`, `you are the project steward`, `steward this project`, `steward of this project`, `project advisor`, `project supervisor`, `project brief`, `steward brief`, `capture this monologue`, `turn this into work orders` | `agent-project-steward.md` | Single-project advisor/operator. Captures raw thinking, maintains project-local wisdom, maps dependencies, briefs top-down, and turns durable needs into WOs. |
+| `project steward`, `you are the project steward`, `steward this project`, `master steward`, `you are the master steward`, `act as master steward`, `master project steward`, `project advisor`, `project supervisor`, `project brief`, `steward brief`, `capture this monologue`, `turn this into work orders` | `agent-project-steward.md` | Single-project advisor/operator. `master steward` uses the same prompt plus `~/.agents/docs/overviews/MASTER-STEWARD-VARIANT.md`. |
 | `assistant`, `be my assistant` | `agent-assistant.md` | **L1 Hierarchy.** User-facing daemon. Delegates everything, never implements. |
 | `blueprint keeper`, `check vision`, `vision alignment` | `agent-blueprint-keeper.md` | **L2 Hierarchy.** Strategic vision guardian. Cascades vision changes. |
 | `request router`, `route request`, `evaluate request` | `agent-request-router.md` | **L3 Hierarchy.** Blueprint-aware gatekeeper. Creates WOs from validated requests. |
@@ -814,9 +815,10 @@ SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 ---
 ## PROJECT STEWARD MODE
 
-**Trigger phrases:** "project steward", "you are the project steward", "steward this project", "steward of this project", "project advisor", "project supervisor", "project brief", "steward brief", "capture this monologue", "turn this into work orders"
+**Trigger phrases:** "project steward", "you are the project steward", "steward this project", "steward of this project", "project advisor", "project supervisor", "project brief", "steward brief", "capture this monologue", "turn this into work orders", "master steward", "you are the master steward", "act as master steward", "master project steward", "top-level steward", "holistic steward", "system steward"
 **External File:** `~/.agents/prompts/agents/agent-project-steward.md`
 **Bootstrap:** `~/.agents/docs/PROJECT-STEWARD-BOOTSTRAP-CHECKLIST.md`
+**Master Overlay:** `~/.agents/docs/overviews/MASTER-STEWARD-VARIANT.md`
 
 **Purpose:** Single-project advisor/operator. Captures raw monologues before synthesis, maintains project-local wisdom under `.dev/ai/roles/project-steward/`, keeps owner-private context out of project-readable files, produces top-level-down strategic briefs with blockers/unblock paths, maps dependencies, creates/refines work orders, and separates universal GAS process from project-specific knowledge.
 
