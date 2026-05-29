@@ -153,6 +153,9 @@ User assigns a role with phrases like:
 **IMMEDIATELY when assigned a role:**
 
 1. **Load the role prompt**: Read `~/.agents/prompts/agents/agent-[role].md`
+   unless the role is mode-backed; for `commit` and `master smart commit`,
+   read `~/.agents/modes/SMART-COMMIT-MODE.md` instead, plus the Master Smart
+   Commit overlay when `master` is present.
 2. **Announce role activation**: Output the role's greeting (from the prompt file)
 3. **Operate ONLY within role scope**: Do NOT perform actions outside the role's defined responsibilities
 
@@ -166,10 +169,34 @@ User assigns a role with phrases like:
 | dev | Implement from work orders | Creating new work orders (unless blocking) |
 | qa | Verify implementations, run tests | Implementing features |
 | commit | Execute Smart Commit Mode | Creating work orders, implementing features |
+| master smart commit | Execute Smart Commit Mode with the Master Smart Commit overlay and private cross-project registry | Separate prompt, implementation work, weakening Smart Commit security/no-new-work rules |
 | project steward | Capture monologues, maintain project-local wisdom, map dependencies, create/refine WOs | Cross-project blocker supervision, generic implementation without a scoped WO |
 | master steward | Project Steward with master overlay for top-level holistic work, cross-project routing, and dispatch-locality decisions | Separate prompt, implementation work, replacing Blocker Supervisor/GAS hierarchy roles |
 
 **Details:** Read the role prompt (`~/.agents/prompts/agents/agent-[role].md`). Full role list: `~/.agents/prompts/agents/_AGENT-INDEX.md`.
+
+---
+
+## Agent Shorthand (recognized by all agents)
+
+These abbreviations are valid in conversation, pseudo-XML tags, relay
+text, and any owner-facing or agent-facing communication:
+
+| Short | Agent |
+|-------|-------|
+| MS | Master Steward |
+| Stew | Steward (any project steward) |
+| {PROJECT}S | Project-specific steward (e.g., UMS = Universal Manifest Steward) |
+| Orch, Orc | Orchestrator |
+| Supe | Blocker Supervisor |
+| AZ, A0 | Agent Zero |
+
+Exception: if a project's initials are "M", MS still means Master
+Steward, not that project's steward.
+
+Pseudo-XML usage for wrapping conversation excerpts:
+`<orc>orchestrator output</orc>`, `<MS>master steward output</MS>`,
+`<supe>supervisor output</supe>`, etc.
 
 ---
 
@@ -197,7 +224,7 @@ User assigns a role with phrases like:
 | `blocker cataloger`, `scan blockers`, `catalog blockers` | `agent-blocker-supervisor-cataloger.md` | Cross-project blocker scan; emits per-project + master indexes. Scanner only. |
 | `blocker engineer`, `unblock me`, `unblock work`; optional workstream form: `unblock workstream {ws} [in {abs-path}]` | `agent-blocker-supervisor-unblocker.md` | Picks up idle blockers, attempts resolution, surfaces unresolvable to user. Workstream form (BLK-014) filters by `(project, workstream)`. |
 | `trio`, `activate trio` | All three agents | Multi-agent coordination |
-| `commit agent`, `smart commit` | `SMART-COMMIT-MODE.md` | Intelligent commits |
+| `commit agent`, `smart commit`, `master smart commit`, `you are master smart commit`, `you are the master smart commit`, `act as master smart commit` | `SMART-COMMIT-MODE.md` | Intelligent commits. `master smart commit` uses the Master Smart Commit overlay at `~/.agents/docs/overviews/MASTER-SMART-COMMIT-VARIANT.md`. |
 | `design parity audit`, `run design audit`, `design audit`, `DPA`, `journey audit`, `check design parity`, `are the specs implemented` | `DESIGN-PARITY-AUDIT-MODE.md` | Three-parity audit: Vision-to-Design, Design-to-Code, Journey-to-Experience. Parallel agents, delta tracking, remediation WOs. |
 | `copy first`, `copy-first web`, `markdown first`, `write the website`, `content before code` | `~/.agents/skills/copy-first-web/methodology.md` | Copy-first web development: perfect copy in markdown before building pages. Architecture analysis, deduplication, audience routing, parallel copywriter dispatch, then implementation. |
 | `success story`, `failure story`, `learn from this`, `store this in GAS`, `issue I need to solve`, `field protocol`, `field experience` | `~/.agents/docs/field-protocols/INDEX.md` | Situational learning/protocol lookup. Use for success/failure stories or current people/org/community/team problems; ask if outcome state is unclear; keep raw source private. |
@@ -518,8 +545,10 @@ document-only teams spec lands.
 
 ### Integration
 
-- IDs: `WO-{project}-{timestamp}-{seq}` | Index: `.dev/ai/workorders/WO-INDEX.md`
-- Status: NOT_STARTED | IN_PROGRESS | BLOCKED | COMPLETED
+- IDs: `WO-{PROJECT}-{SEQ}` (timestamp in filename prefix and `created` frontmatter, not in the ID)
+- Index: `.dev/ai/workorders/WO-INDEX.md`
+- Status: READY | IN_PROGRESS | BLOCKED | COMPLETED | OBSOLETE
+- Format: `~/.agents/docs/standards/WO-FORMAT-STANDARD.md` (tiered: Simple, Standard, Complex)
 
 ---
 
@@ -707,7 +736,7 @@ SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 ---
 ## SMART COMMIT MODE
 
-**Trigger phrases:** "go", "smart commit", "group commits", "commit files", "analyze commits"
+**Trigger phrases:** "go", "smart commit", "master smart commit", "you are master smart commit", "you are the master smart commit", "act as master smart commit", "group commits", "commit files", "analyze commits"
 **External File:** `~/.agents/modes/SMART-COMMIT-MODE.md`
 
 **Purpose:** Intelligent file grouping + commit automation with security scan and scannable commit messages.
@@ -900,9 +929,10 @@ SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 ## WORK ORDER CREATION MODE
 
 **Trigger phrases:** "create work order", "create wo", "new work order", "generate work order"
-**External File:** `~/.agents/prompts/work-orders/CREATE-WORK-ORDER.md`
+**Format Standard:** `~/.agents/docs/standards/WO-FORMAT-STANDARD.md`
+**Legacy Template (deprecated):** `~/.agents/prompts/work-orders/CREATE-WORK-ORDER.md`
 
-**Purpose:** Create self-contained, executable work orders with complete context for zero-context execution.
+**Purpose:** Create self-contained, executable work orders using the tiered format standard (Tier 1: Simple, Tier 2: Standard, Tier 3: Complex). Scale WO structure with complexity. All WOs use unified YAML frontmatter and unified status values (READY, IN_PROGRESS, BLOCKED, COMPLETED, OBSOLETE).
 
 ---
 ## WORK ORDER EXECUTION MODE
