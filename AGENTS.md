@@ -77,7 +77,7 @@ This global configuration has been carefully crafted over months of refinement. 
 2. **It blocks you from doing useful work.** While you sit polling, you are accomplishing nothing.
 3. **It accomplishes literally nothing.** You are automatically notified when background tasks complete. The notification system exists precisely so you do not need to poll.
 
-**This includes Codex native multi-agent work: background-agent completions are surfaced programmatically to the parent thread. Do NOT model Codex as a poll-only runtime.**
+**This includes Codex native multi-agent work: native completion notices are first-class when they arrive, and any recovery must follow the bounded Codex Mac lifecycle contract. Do NOT model Codex as a poll-only runtime.**
 
 **THE CORRECT BEHAVIOR IS:**
 1. Launch background agents/tasks.
@@ -133,6 +133,7 @@ ALWAYS check `~/.agents/prompts/PROMPT-PATH-INDEX.md` FIRST before searching for
 - **Tier classifier:** `~/.agents/tools/usage-management/benchmarks/scripts/classify-tier.sh <WO.md>` — returns 1/2/3
 - **Never hardcode model choices** — always use select-model.sh or the policy defaults
 - **Inference Access:** `~/.agents/docs/INFERENCE-ACCESS-GUIDE.md` — how to call any model from any agent
+- **🚨 CLAUDE CODE TRUSTED MODEL OVERRIDE:** The trusted Opus model is `claude-opus-4-6[1m]`. When dispatching Opus-tier work in Claude Code, **NEVER pass `model: "opus"`** to the Agent tool — that resolves to the latest Opus (currently 4.8), which is NOT trusted. **Omit the model parameter entirely** so sub-agents inherit the parent session's trusted model. Only pass `model: "sonnet"` for explicit Sonnet-tier downgrades on simple/mechanical work. Use `max` effort for all Opus-tier dispatches.
 
 ---
 
@@ -352,8 +353,8 @@ User Input -> Triage (capture) -> Dev (implement) -> QA (verify) -> Complete
 
 **Current baseline:**
 - **Codex runtime:** Multi-agent requires `~/.codex/config.toml` with `[features] multi_agent = true`. Native Agent Teams are not available yet; use GAS file-based team coordination (`subtask-comms/`, work orders, and shared state files) until native teams land.
-  - Native completion path: Codex background-agent completions are surfaced programmatically to the parent thread.
-  - Hook/bridge tracking is for observability and dashboards; it is **NOT** the mechanism that tells the parent Codex agent a worker finished.
+  - Native completion path: Codex background-agent completions are intended to surface programmatically, but Codex Mac idle-parent wake/assimilation is not treated as proven. Follow `/Users/grig/.agents/docs/protocols/codex-mac-native-worker-lifecycle.md`.
+  - Hook/bridge tracking is for observability and dashboards; it is **NOT** a proven parent-wake mechanism.
 - **Claude Code 4.6+:** Multi-agent is baseline behavior. Agent Teams require file setting `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` under `env` in Claude settings JSON.
 - **Tracking/dashboard integration:** Team and multi-agent events are routed through `~/.agents/hooks-integration/dispatcher.sh` and persisted for dashboards/monitoring. Keep hooks enabled in settings so agent-team events are captured.
 
@@ -466,6 +467,14 @@ For any multi-component system (Providers, LLMs, APIs), define explicit verifica
 - **Script:** `~/.agents/tools/usage-management/scripts/select-model.sh <tier>` — returns cheapest passing model + effort level
 - **Tier classifier:** `~/.agents/tools/usage-management/benchmarks/scripts/classify-tier.sh <WO.md>` — returns 1 (Simple), 2 (Standard), 3 (Complex)
 - Do not hardcode model choices — the policy updates as benchmarks complete and models improve.
+
+**🚨 CLAUDE CODE TRUSTED MODEL — MANDATORY FOR ALL DISPATCHES:**
+- The owner-trusted Opus model is `claude-opus-4-6[1m]`. Opus 4.8 is NOT trusted.
+- **Agent tool dispatches:** NEVER pass `model: "opus"` — it resolves to the latest Opus (4.8). Omit the model parameter entirely so the sub-agent inherits the parent session's model (`claude-opus-4-6[1m]`).
+- **Only override model downward:** Pass `model: "sonnet"` when the tier policy routes to Sonnet for simple/mechanical work. Never pass `model: "opus"` or `model: "haiku"`.
+- **Effort level:** Use `max` effort for all Opus-tier work. This does not apply to Sonnet-tier simple work.
+- **CLI dispatches (`claude -p`):** Use `--model claude-opus-4-6` explicitly. Do not rely on defaults.
+- **Rationale:** Every dispatched sub-agent that opens on 4.8 is running on the least-trusted model. This rule ensures the trusted model propagates through the entire dispatch chain.
 
 **Required:**
 - Always `run_in_background=true`
