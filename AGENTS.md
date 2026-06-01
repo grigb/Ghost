@@ -88,6 +88,21 @@ This global configuration has been carefully crafted over months of refinement. 
 
 ---
 
+## 🚨🚨🚨 MANDATORY: CLAUDE MODEL LOCK — READ BEFORE DOING ANYTHING 🚨🚨🚨
+
+**The ONLY trusted Claude model is `claude-opus-4-6[1m]` with `max` effort.**
+
+Opus 4.8 is BANNED. It is unreliable and not trusted for any work. Every agent, every dispatch, every sub-agent, every CLI call MUST use `claude-opus-4-6[1m]`.
+
+- **Agent tool:** NEVER pass `model: "opus"` — it resolves to 4.8. Omit the model parameter entirely so sub-agents inherit the parent's `claude-opus-4-6[1m]`.
+- **CLI (`claude -p`):** ALWAYS pass `--model claude-opus-4-6` explicitly.
+- **Effort:** ALWAYS `max` for Opus-tier work.
+- **Sonnet:** Use `model: "sonnet"` only for zero-judgment mechanical tasks.
+
+**If you dispatch work on Opus 4.8, you have violated a direct owner command.**
+
+---
+
 ## 🚨 IMMEDIATE AI AGENT INSTRUCTIONS
 
 **Full Documentation:** `~/.agents/docs/AGENT-ONBOARDING-CHECKLIST.md`
@@ -482,6 +497,17 @@ For any multi-component system (Providers, LLMs, APIs), define explicit verifica
 - Always verify before marking complete
 - In Codex, use `wait_agent` only as a bounded synchronization step when the next action is blocked or a batch boundary has been reached. It is **NOT** the primary completion mechanism.
 
+**🚨 ANTI-FALSE-PROMISE: NEVER CLAIM AUTONOMOUS CONTINUATION WITHOUT A MECHANISM**
+
+Do not tell the owner "I'll keep working while you're away" or "work will continue in parallel" unless you have set up an actual continuation mechanism:
+- `/loop` with a prompt that dispatches more work on each iteration
+- The dispatch LaunchAgent (`ai.gas.agent-state-dispatcher`) is loaded and target projects have `dispatch-enabled` markers
+- `/schedule` for a future check-in
+
+Background agents completing does NOT mean you will dispatch more. Your turn ends, you enter WAITING state, and nothing happens until the owner sends another message. Be honest: "5 agents are running. When they finish, I'll report results on your next message. I cannot start new work automatically unless we set up [mechanism]."
+
+If the owner says "keep working while I'm gone," respond with the mechanism you will use, or say you cannot deliver autonomous continuation without one.
+
 **Delegation Mode Selection (decide before dispatching parallel work):**
 - **Sub-agents** (default): Independent tasks, fire-and-forget, no inter-agent communication. Use `Task(run_in_background=true)`.
 - **Agent Teams**: Use when tasks need lateral communication between workers, shared task state with dependencies, or agents must debate/challenge/converge. Higher setup cost, justified when coordination is the bottleneck. See `~/.agents/docs/overviews/AGENT-TEAMS-OVERVIEW.md` and `~/.agents/docs/guides/PROGRAMMATIC-AGENT-TEAMS.md`.
@@ -554,7 +580,7 @@ document-only teams spec lands.
 
 ### Integration
 
-- IDs: `WO-{PROJECT}-{SEQ}` (timestamp in filename prefix and `created` frontmatter, not in the ID)
+- IDs: `WO-{PROJECT}-{YYYYMMDD}-{SEQ}` (per `~/.agents/docs/standards/WO-FORMAT-STANDARD.md`)
 - Index: `.dev/ai/workorders/WO-INDEX.md`
 - Status: READY | IN_PROGRESS | BLOCKED | COMPLETED | OBSOLETE
 - Format: `~/.agents/docs/standards/WO-FORMAT-STANDARD.md` (tiered: Simple, Standard, Complex)
