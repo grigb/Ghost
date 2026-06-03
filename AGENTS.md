@@ -171,7 +171,7 @@ User assigns a role with phrases like:
 1. **Load the role prompt**: Read `~/.agents/prompts/agents/agent-[role].md`
    unless the role is mode-backed; for `commit`/`smart commit`,
    read `~/.agents/modes/SMART-COMMIT-MODE.md`; for `global commit`,
-   read `~/.agents/docs/overviews/MASTER-SMART-COMMIT-VARIANT.md` directly
+   read `~/.agents/docs/overviews/GLOBAL-COMMIT-VARIANT.md` directly
    (do NOT load the base SMART-COMMIT-MODE.md).
 2. **Announce role activation**: Output the role's greeting (from the prompt file)
 3. **Operate ONLY within role scope**: Do NOT perform actions outside the role's defined responsibilities
@@ -186,7 +186,7 @@ User assigns a role with phrases like:
 | dev | Implement from work orders | Creating new work orders (unless blocking) |
 | qa | Verify implementations, run tests | Implementing features |
 | commit | Execute Smart Commit Mode | Creating work orders, implementing features |
-| global commit | Registry-driven cross-project parallel commit dispatch via `~/.agents/docs/overviews/MASTER-SMART-COMMIT-VARIANT.md` | Separate prompt, implementation work, weakening Smart Commit security/no-new-work rules |
+| global commit | Registry-driven cross-project parallel commit dispatch via `~/.agents/docs/overviews/GLOBAL-COMMIT-VARIANT.md` | Separate prompt, implementation work, weakening Smart Commit security/no-new-work rules |
 | project steward | Capture monologues, maintain project-local wisdom, map dependencies, create/refine WOs | Cross-project blocker supervision, generic implementation without a scoped WO |
 | master steward | Project Steward with master overlay for top-level holistic work, cross-project routing, and dispatch-locality decisions | Separate prompt, implementation work, replacing Blocker Supervisor/GAS hierarchy roles |
 
@@ -242,7 +242,7 @@ Pseudo-XML usage for wrapping conversation excerpts:
 | `blocker engineer`, `unblock me`, `unblock work`; optional workstream form: `unblock workstream {ws} [in {abs-path}]` | `agent-blocker-supervisor-unblocker.md` | Picks up idle blockers, attempts resolution, surfaces unresolvable to user. Workstream form (BLK-014) filters by `(project, workstream)`. |
 | `trio`, `activate trio` | All three agents | Multi-agent coordination |
 | `commit agent`, `smart commit` | `SMART-COMMIT-MODE.md` | Intelligent commits (single-project). |
-| `global commit`, `you are the global commit agent`, `commit all projects` | `MASTER-SMART-COMMIT-VARIANT.md` | Registry-driven cross-project parallel commit dispatch. Does NOT load SMART-COMMIT-MODE.md — workers get their own prompt. |
+| `global commit`, `you are the global commit agent`, `commit all projects` | `GLOBAL-COMMIT-VARIANT.md` | Registry-driven cross-project parallel commit dispatch. Does NOT load SMART-COMMIT-MODE.md — workers get their own prompt. |
 | `design parity audit`, `run design audit`, `design audit`, `DPA`, `journey audit`, `check design parity`, `are the specs implemented` | `DESIGN-PARITY-AUDIT-MODE.md` | Three-parity audit: Vision-to-Design, Design-to-Code, Journey-to-Experience. Parallel agents, delta tracking, remediation WOs. |
 | `copy first`, `copy-first web`, `markdown first`, `write the website`, `content before code` | `~/.agents/skills/copy-first-web/methodology.md` | Copy-first web development: perfect copy in markdown before building pages. Architecture analysis, deduplication, audience routing, parallel copywriter dispatch, then implementation. |
 | `success story`, `failure story`, `learn from this`, `store this in GAS`, `issue I need to solve`, `field protocol`, `field experience` | `~/.agents/docs/field-protocols/INDEX.md` | Situational learning/protocol lookup. Use for success/failure stories or current people/org/community/team problems; ask if outcome state is unclear; keep raw source private. |
@@ -779,7 +779,7 @@ SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 ## GLOBAL COMMIT (cross-project parallel dispatch)
 
 **Trigger phrases:** "global commit", "you are the global commit agent", "commit all projects"
-**External File:** `~/.agents/docs/overviews/MASTER-SMART-COMMIT-VARIANT.md`
+**External File:** `~/.agents/docs/overviews/GLOBAL-COMMIT-VARIANT.md`
 **Note:** Does NOT load SMART-COMMIT-MODE.md. The overlay is self-contained for the coordinator role; workers get `smart-commit-worker.md`.
 
 **Purpose:** Intelligent file grouping + commit automation with security scan and scannable commit messages.
