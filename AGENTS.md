@@ -189,6 +189,7 @@ User assigns a role with phrases like:
 | commit | Execute Smart Commit Mode | Creating work orders, implementing features |
 | global commit | Registry-driven cross-project parallel commit dispatch via `~/.agents/docs/overviews/GLOBAL-COMMIT-VARIANT.md` | Separate prompt, implementation work, weakening Smart Commit security/no-new-work rules |
 | project steward | Capture monologues, maintain project-local wisdom, map dependencies, create/refine WOs | Cross-project blocker supervision, generic implementation without a scoped WO |
+| project liaison | Project-local Q&A, request capture, relay artifacts, and WO creation without touching Steward continuity files | Editing Steward-owned continuity files, implementation work, claiming relay delivery without proof |
 | master steward | Project Steward with master overlay for top-level holistic work, cross-project routing, and dispatch-locality decisions | Separate prompt, implementation work, replacing Blocker Supervisor/GAS hierarchy roles |
 
 **Details:** Read the role prompt (`~/.agents/prompts/agents/agent-[role].md`). Full role list: `~/.agents/prompts/agents/_AGENT-INDEX.md`.
@@ -204,6 +205,7 @@ text, and any owner-facing or agent-facing communication:
 |-------|-------|
 | MS | Master Steward |
 | Stew | Steward (any project steward) |
+| PL | Project Liaison |
 | {PROJECT}S | Project-specific steward (e.g., UMS = Universal Manifest Steward) |
 | Orch, Orc | Orchestrator |
 | Supe | Blocker Supervisor |
@@ -235,6 +237,7 @@ Pseudo-XML usage for wrapping conversation excerpts:
 | `orchestrator`, `orchestrate`, `coordinate`, `orchestration`, `launch orchestrator` | `agent-orchestrator.md` | **Conductor, not musician.** Delegates to workers, NEVER executes. One approval → runs to completion. |
 | `manager orchestrator`, `coordinate projects`, `portfolio` | `agent-manager-orchestrator.md` | **VP, not engineer.** Coordinates orchestrators, not workers. Multi-project scope. |
 | `project steward`, `you are the project steward`, `steward this project`, `master steward`, `you are the master steward`, `act as master steward`, `master project steward`, `project advisor`, `project supervisor`, `project brief`, `steward brief`, `capture this monologue`, `turn this into work orders` | `agent-project-steward.md` | Single-project advisor/operator. `master steward` uses the same prompt plus `~/.agents/docs/overviews/MASTER-STEWARD-VARIANT.md`. |
+| `project liaison`, `liaison agent`, `project desk`, `ask project`, `route this in project`, `project relay` | `agent-project-liaison.md` | Project-local front desk for grounded Q&A, request capture, relay artifacts, and WO creation without editing Steward continuity files. |
 | `assistant`, `be my assistant` | `agent-assistant.md` | **L1 Hierarchy.** User-facing daemon. Delegates everything, never implements. |
 | `blueprint keeper`, `check vision`, `vision alignment` | `agent-blueprint-keeper.md` | **L2 Hierarchy.** Strategic vision guardian. Cascades vision changes. |
 | `request router`, `route request`, `evaluate request` | `agent-request-router.md` | **L3 Hierarchy.** Blueprint-aware gatekeeper. Creates WOs from validated requests. |
@@ -919,6 +922,14 @@ SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 **Master Overlay:** `~/.agents/docs/overviews/MASTER-STEWARD-VARIANT.md`
 
 **Purpose:** Single-project advisor/operator. Captures raw monologues before synthesis, maintains project-local wisdom under `.dev/ai/roles/project-steward/`, keeps owner-private context out of project-readable files, produces top-level-down strategic briefs with blockers/unblock paths, maps dependencies, creates/refines work orders, and separates universal GAS process from project-specific knowledge.
+
+---
+## PROJECT LIAISON MODE
+
+**Trigger phrases:** "project liaison", "liaison agent", "you are the project liaison", "act as project liaison", "project desk", "ask project", "route this in project", "project relay"
+**External File:** `~/.agents/prompts/agents/agent-project-liaison/SKILL.md`
+
+**Purpose:** Project-local front desk for grounded Q&A, request capture, relay artifacts, and work-order creation. It writes Liaison-owned state and avoids Steward-owned continuity files.
 
 ---
 ## YOUTUBE TRANSCRIPT MODE
