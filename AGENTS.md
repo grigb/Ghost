@@ -131,7 +131,7 @@ Never use the AskUserQuestion tool (error-prone). Ask questions directly in plai
 1. **Version Check**: `~/.agents/scripts/check-rules-datetime.sh`
 2. **Track Session**: `~/.agents/scripts/track-project.sh "[project]" "Session started" "description" "$TOOL"`
 3. **Check STATE-OF-THE-PROJECT**: Look in `.dev/ai/` or `docs/` (create from template if missing)
-4. **Review context**: Check `.dev/ai/{sessions,audits,findings,handoffs,changelogs,workorders,proposals}/` for recent history
+4. **Review context**: Check `.dev/ai/{briefs,sessions,audits,findings,handoffs,changelogs,workorders,proposals}/` for recent history
 5. **Read project docs** referenced in STATE-OF-THE-PROJECT
 
 **Fast File Lookup:**
@@ -150,6 +150,12 @@ ALWAYS check `~/.agents/prompts/PROMPT-PATH-INDEX.md` FIRST before searching for
 - **Never hardcode model choices** — always use select-model.sh or the policy defaults
 - **Inference Access:** `~/.agents/docs/INFERENCE-ACCESS-GUIDE.md` — how to call any model from any agent
 - **🚨 CLAUDE CODE TRUSTED MODEL OVERRIDE:** The trusted Opus model is `claude-opus-4-6[1m]`. When dispatching Opus-tier work in Claude Code, **NEVER pass `model: "opus"`** to the Agent tool — that resolves to the latest Opus (currently 4.8), which is NOT trusted. **Omit the model parameter entirely** so sub-agents inherit the parent session's trusted model. Only pass `model: "sonnet"` for explicit Sonnet-tier downgrades on simple/mechanical work. Use `max` effort for all Opus-tier dispatches.
+
+---
+
+## 🚨 OWNER-FACING BRIEF STANDARD (MANDATORY)
+
+All owner-facing decision, blocker, gate, and high-stakes status briefs MUST follow `/Users/grig/.agents/docs/OWNER-FACING-BRIEF-STANDARD.md` and the style guide it references. A compliant brief must give enough context for a fast high-stakes decision without becoming verbose, state the problem/block, present the fix or real options, recommend the best choice when evidence supports one, name the repercussions/tradeoffs of every meaningful choice, and state uncertainty/evidence limits. Choice briefs must be durable Markdown artifacts with parseable owner-answer slots as defined in the standard. If evidence is insufficient for a recommendation, say so and provide the best evidence-gathering next action instead of pretending certainty.
 
 ---
 
@@ -1522,7 +1528,7 @@ PREFIX=$(~/.agents/scripts/get-filename-prefix.sh)
 ✅ "Save to `.dev/ai/reports/2025-12-23-21-15-42-report.md`"
 ```
 
-**Scope:** All files in `.dev/ai/{reports,sessions,audits,handoffs,workorders,proposals,accomplishments}/` require timestamp-prefixed filenames.
+**Scope:** All files in `.dev/ai/{briefs,reports,sessions,audits,handoffs,workorders,proposals,accomplishments}/` require timestamp-prefixed filenames.
 
 ---
 
