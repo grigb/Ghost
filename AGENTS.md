@@ -969,6 +969,7 @@ SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 
 **Trigger phrases:** "score project", "score this project", "rubric intake", "run intake", "project scoring", "autonomy intake", "run project intake"
 **External File:** `~/.agents/modes/PROJECT-SCORING-AUTONOMY-INTAKE-MODE.md`
+**State / Resume Doc:** `~/.agents/docs/RUBRIC-INTAKE-INITIATIVE.md` (durable control doc — what's built/committed/open for this initiative)
 
 **Purpose:** Register/name a project, run the Initiative Value Rubric and Autonomy-Readiness test, place the work in a lane, and route GREEN work to autonomous execution.
 
