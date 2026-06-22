@@ -978,12 +978,12 @@ SESSION_ID=$(uuidgen | tr '[:upper:]' '[:lower:]')
 **Purpose:** Register/name a project, run the Initiative Value Rubric and Autonomy-Readiness test, place the work in a lane, and route GREEN work to autonomous execution.
 
 ---
-## FRONTIER EVALUATION ENTRY MODE
+## CRITICAL REVIEW
 
 **Trigger phrases:** "critical review this", "add this to critical review", "create critical review", "submit critical review", "send this to Fable", "Fable review", "top-model review", "high-effort model review", "critical intelligence review"
 **External File:** `~/.agents/docs/protocols/CRITICAL-REVIEW-PROTOCOL.md`
 
-**Purpose:** Create or process a Critical Review: a GAS-wide priority overlay for high-effort model review requests above normal project scoring.
+**Purpose:** Create or process a Critical Review: a GAS-wide priority overlay (protocol, not a mode) that puts high-risk/high-consequence items at the front of the line for high-effort model review, above normal project scoring.
 
 ---
 ## AGENT-FRIENDLY IMPLEMENTATION MODE
