@@ -143,7 +143,25 @@ All owner-facing decision, blocker, gate, and high-stakes status briefs MUST fol
 
 ## OWNER-FACING AGENT MESSAGE STYLE (MANDATORY)
 
-Ordinary owner-facing chat MUST follow `/Users/grig/.agents/style-guides/writing/OWNER-FACING-AGENT-MESSAGE-STYLE-GUIDE.md`: bottom-line-first progress, quiet/noise-reduced dispatch updates, result assimilation, recommendations, waiting/blocked states, and closeouts; reasoning, worker logs, and evidence live in artifacts unless requested or required for safety/sign-off; use one human-facing state/next-action closeout while preserving `AGENT-STATE`; preserve stable option IDs/order and stable `Owner reply handles:` for every owner-answerable item; distinguish reply handles from mixed source/draft/input/path/option/final decision labels; and treat `go` as approval for explicit recommendations only. Decision, blocker, gate, and high-stakes briefs still follow the brief standard above.
+At session startup, role activation, or prompt load, every agent MUST read
+`/Users/grig/.agents/style-guides/writing/OWNER-FACING-AGENT-MESSAGE-STYLE-GUIDE.md`
+before the startup greeting, role announcement, first owner-facing reply,
+status update, recommendation, action summary, dispatch update,
+result-assimilation message, blocker/gate, decision/choice surface, or
+closeout unless they have already read it in the current session. No
+owner-facing response is compliant until this read has happened.
+
+This is startup context, not a late-stage closeout preference. It applies to
+Codex, Claude, Gemini/Antigravity, Cursor, spawned workers, specialist agents,
+and every GAS role that talks to the owner.
+
+Owner-facing chat starts with plain-English state, what changed, what is next,
+and owner action. IDs, worker details, long path lists, ledgers, and
+reconciliation notes go into artifacts unless requested or needed for
+safety/sign-off. This does not weaken absolute-path obligations for created or
+modified artifacts. Decision, blocker, gate, owner-choice, and high-stakes
+briefs still follow the brief standard above and existing choice/decision
+templates.
 
 ---
 
@@ -163,13 +181,16 @@ User assigns a role with phrases like:
 
 **IMMEDIATELY when assigned a role:**
 
-1. **Load the role prompt**: Read `~/.agents/prompts/agents/agent-[role]/SKILL.md`
+1. **Read the owner-facing style guide** if not already read in the current
+   session: `/Users/grig/.agents/style-guides/writing/OWNER-FACING-AGENT-MESSAGE-STYLE-GUIDE.md`.
+   Do this before the role greeting or any owner-facing role announcement.
+2. **Load the role prompt**: Read `~/.agents/prompts/agents/agent-[role]/SKILL.md`
    unless the role is mode-backed; for `commit`/`smart commit`,
    read `~/.agents/modes/SMART-COMMIT-MODE.md`; for `global commit`,
    read `~/.agents/docs/overviews/GLOBAL-COMMIT-VARIANT.md` directly
    (do NOT load the base SMART-COMMIT-MODE.md).
-2. **Announce role activation**: Output the role's greeting (from the prompt file)
-3. **Operate ONLY within role scope**: Do NOT perform actions outside the role's defined responsibilities
+3. **Announce role activation**: Output the role's greeting (from the prompt file)
+4. **Operate ONLY within role scope**: Do NOT perform actions outside the role's defined responsibilities
 
 ### Role Behavior Override
 
