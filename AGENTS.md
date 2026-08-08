@@ -563,12 +563,30 @@ and the Web Development checklist above are untouched and remain MANDATORY.
 - **NEVER poll TaskOutput** (agents are notified automatically)
 - **NEVER react to individual completions** in parallel batches
 
-**Model Selection (MANDATORY — read before every delegation):**
-- **Single source of truth:** `~/.agents/docs/MODEL-SELECTION-POLICY.md`
-- **Script:** `~/.agents/tools/usage-management/scripts/select-model.sh <tier>` — returns cheapest passing model + effort level
-- **Tier classifier:** `~/.agents/tools/usage-management/benchmarks/scripts/classify-tier.sh <WO.md>` — returns 1 (Low), 2 (Medium), 3 (High, reserved), 4 (Extra High, **THE DEFAULT**), 5 (Max, exceptional)
-- Do not hardcode model choices — the policy updates as benchmarks complete and models improve.
-- **Time-constrained exception:** deadline binds (burn window) → move **down the Opus effort ladder** (max → high → low) for scouting/audit/leaf work, leaf agents only (no re-delegation). Never move across to a weaker model: Opus @ low is faster AND better than Sonnet at any level. See `~/.agents/docs/SUB-AGENT-ORCHESTRATION-GUIDE.md#time-constrained-delegation-burn-windows`.
+<!-- BEGIN: GAS model + effort selection rule (canonical; paste verbatim into global rule files) -->
+
+**Model And Effort Selection (MANDATORY — EVERY AGENT, NOT JUST ORCHESTRATORS):**
+
+You do not choose a model or an effort level by judgment. Classify the work on the GAS 1-5 scale, then run the selector and use exactly what it returns — before the dispatch call, not after:
+
+```bash
+~/.agents/tools/usage-management/scripts/select-model.sh <1-5>   # -> "model_id native_effort_token"
+```
+
+This binds every agent: when you dispatch a worker (Agent/Task tool, Workflow `agent()`, `spawn_agent`, `launch-wo.sh`, `codex exec`) **and** when you set your own rung. Not just orchestrators. Tier classifier for a WO file: `~/.agents/tools/usage-management/benchmarks/scripts/classify-tier.sh <WO.md>`.
+
+- **Opus**: EVERYTHING. Planning, orchestration, reviews, decisions, ambiguous work, documentation, and leaf-node execution alike.
+- **Sonnet**: RETIRED AND BANNED (owner directive 2026-07-24). Sonnet 5 at its best rung (max: 61.5) LOSES to Opus 5 at its cheapest rung (low: 62.8) while costing 2.5x and burning 5x the tokens. There is no axis on which it wins, including speed.
+- **Haiku**: FORBIDDEN.
+- **Fable**: RESERVED. Permanently available, but the OWNER decides when it is used — never an agent, never a script. Its domains are legal, health, world-knowledge depth, writing quality, and high-stakes review.
+- **When a deadline or quota binds, move DOWN the Opus effort ladder — never across to a weaker model.** Levels 5 -> 4 -> 2 -> 1. Leaf agents only, no re-delegation. See `~/.agents/docs/SUB-AGENT-ORCHESTRATION-GUIDE.md#time-constrained-delegation-burn-windows`.
+- **Effort, not model, is the dial.** GAS runs a five-level scale mapped 1:1 onto the five model effort rungs. Level 4 (Extra High) is the DEFAULT for substantive work; level 5 (Max) is exceptional and needs a reason that existed before the work started; levels 1-2 are for file/document work and bounded procedure such as commits; level 3 is reserved and never auto-routed.
+- **Never hardcode a model** in a prompt, template, or dispatch example — write `<selector-output-model>`. The curated choices live here and in the policy, never in a role prompt, because the policy updates as benchmarks complete and models improve.
+- **Never claim effort you cannot prove.** The Agent/Task tool exposes no effort parameter, so workers inherit the session rung — record `requested-not-proven`, never `enforced`. Workflow's `agent()` does accept `effort`; honor the routed rung there.
+- Canonical policy: `~/.agents/docs/MODEL-SELECTION-POLICY.md`
+- Ask about any model from any lab: `~/.agents/tools/usage-management/scripts/which-model.sh <model>`
+
+<!-- END: GAS model + effort selection rule -->
 
 **Required:**
 - Always `run_in_background=true`
@@ -584,23 +602,11 @@ and the Web Development checklist above are untouched and remain MANDATORY.
 ~/.agents/tools/usage-management/scripts/usage-guard.py --max-parallel
 ```
 
-Weekly quota gates concurrency; 5-hour windows do not (burn those to the end). The cap comes from the **binding** weekly limit and fires on remaining percentage **or** time-to-dry at the measured burn rate, whichever is tighter.
-
-| Level | Cap | Behaviour |
-|-------|-----|-----------|
-| NORMAL | uncapped | Dispatch freely |
-| CAUTION | 3 | Keep fan-out narrow; prefer fewer, larger work units |
-| SERIALIZE | 1 | **One sub-agent at a time — dispatch, wait for return, then the next** |
-| HALT | 0 | Stop dispatching; finish open work and write it to disk |
-| UNKNOWN | 3 | No usable data — treat as CAUTION |
+Weekly quota gates concurrency; 5-hour windows do not (burn those to the end). Obey the returned cap: NORMAL uncapped, CAUTION 3, SERIALIZE 1 (dispatch, wait for return, then the next), HALT 0 (stop dispatching, write open work to disk), UNKNOWN treat as CAUTION. Use `--slots` instead of `--max-parallel` for the real number you may launch machine-wide.
 
 **Why:** a wide wave that hits the weekly wall dies all at once, and Claude Code cannot pause and resume a sub-worker — everything not written to disk is lost. Stop dispatching wide **before** the wall.
 
-**Tune thresholds in `config/usage-optimizer.json` → `pacing`, never in prompts.**
-
-**In-flight awareness:** `usage-guard.py --slots` gives the cap **minus what is already running machine-wide** (across every session and project) — use it instead of `--max-parallel` when you want the real number you may launch. `agent-inflight.py status` shows the breakdown.
-
-**Known limit:** the machine-wide count requires a staged PreToolUse hook (`~/.agents/.dev/ai/staging/inflight-hooks/APPLY.md`, owner-gated). Until it is applied, `--slots` equals the cap and the gate sees only your own dispatches. Codex and AntiGravity are never counted. At SERIALIZE or HALT, treat the cap as generous.
+**Tune thresholds in `config/usage-optimizer.json` → `pacing`, never in prompts.** Level definitions, burn-rate measurement, in-flight accounting, and the staged-hook limitation are in the full doc above.
 
 **🚨 ANTI-FALSE-PROMISE: NEVER CLAIM AUTONOMOUS CONTINUATION WITHOUT A MECHANISM**
 
