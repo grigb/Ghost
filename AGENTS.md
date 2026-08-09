@@ -128,11 +128,8 @@ ALWAYS check `~/.agents/prompts/PROMPT-PATH-INDEX.md` FIRST before searching for
 - **CRITICAL Rule G1:** BEFORE adding any function/class/method, SEARCH for existing implementations with same or similar names. MODIFY existing code instead of creating duplicates.
 - **Coding skills registry:** `~/.agents/skills/CODING-SKILLS.md` (e.g. Ponytail). Consult before any code work — orchestrators select & pass applicable skills to workers; **dispatched workers (no signed role) must still check it themselves even if their prompt named no skill.**
 
-**🚨 MODEL SELECTION (MANDATORY FOR ORCHESTRATORS/SUPERVISORS):**
-- **Policy:** `~/.agents/docs/MODEL-SELECTION-POLICY.md` — which model + effort level to use per complexity tier
-- **Script:** `~/.agents/tools/usage-management/scripts/select-model.sh <tier>` — returns cheapest passing model
-- **Tier classifier:** `~/.agents/tools/usage-management/benchmarks/scripts/classify-tier.sh <WO.md>` — returns 1/2/3/4/5 on the five-level GAS scale; **4-Extra High is THE DEFAULT**, 5-Max is exceptional, 3-High is reserved and never auto-selected
-- **Never hardcode model choices** — always use select-model.sh or the policy defaults
+**🚨 MODEL SELECTION (MANDATORY — EVERY AGENT, NOT JUST ORCHESTRATORS/SUPERVISORS):**
+- **The rule in full is the canonical block in this file** — search `Model And Effort Selection`. In short: classify on the GAS 1-5 scale, run `~/.agents/tools/usage-management/scripts/select-model.sh <1-5>`, use exactly what it returns, and never hardcode a model in a prompt, template, or dispatch example. Policy: `~/.agents/docs/MODEL-SELECTION-POLICY.md`.
 - **RETIRED — never recommend or route to these:** Sonnet 5, Haiku 4.5. On Claude use **Opus across the board**. Sonnet 5's best effort level loses to Opus 5's weakest at 2.5x the cost.
 - **RESERVED — Fable 5 is available and always will be, but is OWNER-DISPATCH-ONLY.** Never auto-route to Fable and never select it yourself; `select-model.sh` will not return it. Fable is reached only through an owner-initiated handoff via Critical Review (`~/.agents/skills/critical-review/SKILL.md`), which holds packets until the owner authorizes the run.
 - **Find Unknowns before suggesting Fable:** use `~/.agents/skills/find-unknowns/SKILL.md` with the normal policy-selected model first. A qualifying suggestion names the unresolved decision-changing unknown and why exceptional world knowledge, judgment/taste, cross-domain synthesis, or high-stakes reversibility could change the outcome. Difficulty, task length, ordinary coding/discovery, or level 5 alone do not qualify. Suggestion is not selection, dispatch, access, or approval; continue safe evidence gathering and packet preparation.
