@@ -126,7 +126,7 @@ ALWAYS check `~/.agents/prompts/PROMPT-PATH-INDEX.md` FIRST before searching for
 - **Index:** `~/.agents/docs/coding-rules/INDEX.md`
 - **General Rules:** `~/.agents/docs/coding-rules/GENERAL-RULES.md`
 - **CRITICAL Rule G1:** BEFORE adding any function/class/method, SEARCH for existing implementations with same or similar names. MODIFY existing code instead of creating duplicates.
-- **Coding skills registry:** `~/.agents/skills/CODING-SKILLS.md` (e.g. Ponytail). Consult before any code work — orchestrators select & pass applicable skills to workers; **dispatched workers (no signed role) must still check it themselves even if their prompt named no skill.**
+- **Coding skills registry:** `~/.agents/skills/CODING-SKILLS.md` (Ponytail, Advise Project Approach, NeuroArxiv, and other reviewed coding skills). Consult before any code work — orchestrators select & pass applicable skills to workers; **dispatched workers (no signed role) must still check it themselves even if their prompt named no skill.**
 
 **🚨 MODEL SELECTION (MANDATORY — EVERY AGENT, NOT JUST ORCHESTRATORS/SUPERVISORS):**
 - **The rule in full is the canonical block in this file** — search `Model And Effort Selection`. In short: classify on the GAS 1-5 scale, run `~/.agents/tools/usage-management/scripts/select-model.sh <1-5>`, use exactly what it returns, and never hardcode a model in a prompt, template, or dispatch example. Policy: `~/.agents/docs/MODEL-SELECTION-POLICY.md`.
